@@ -31,6 +31,11 @@ export class OutputGTFSCommand implements CLICommand {
       throw new Error(`Output path ${this.baseDir} does not exist.`);
     }
 
+    if (argv.length > 4) {
+      const json = JSON.parse(fs.readFileSync(argv[4], 'utf-8'));
+      this.repository.stationCoordinates = json;
+    }
+
     const associationsP = this.repository.getAssociations();
     const scheduleResultsP = this.repository.getSchedules();
     const transfersP = this.copy(this.repository.getTransfers(), "transfers.txt");
@@ -75,7 +80,7 @@ export class OutputGTFSCommand implements CLICommand {
   /**
    * trips.txt, stop_times.txt and routes.txt have interdependencies so they are written together
    */
-  private copyTrips(schedules: Schedule[], serviceIds: ServiceIdIndex): Promise<any> {
+  private async copyTrips(schedules: Schedule[], serviceIds: ServiceIdIndex): Promise<any> {
     console.log("Writing trips.txt, stop_times.txt and routes.txt");
     const trips = this.output.open(this.baseDir + "trips.txt");
     const stopTimes = this.output.open(this.baseDir + "stop_times.txt");
@@ -87,9 +92,9 @@ export class OutputGTFSCommand implements CLICommand {
         continue;
       }
 
-      const route = schedule.toRoute();
-      routes[route.route_short_name] = routes[route.route_short_name] || route;
-      const routeId = routes[route.route_short_name].route_id;
+      const route = await schedule.toRoute(this.repository);
+      routes[route.route_id] = routes[route.route_id] || route;
+      const routeId = routes[route.route_id].route_id;
       const serviceId = serviceIds[schedule.calendar.id];
 
       trips.write(schedule.toTrip(serviceId, routeId));
