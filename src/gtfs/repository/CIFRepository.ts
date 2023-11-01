@@ -171,7 +171,7 @@ export class CIFRepository {
           stop_time.id IS NULL OR crs_code IS NOT NULL
         )
         AND runs_from < CURDATE() + INTERVAL 3 MONTH
-        AND runs_to >= CURDATE()
+        AND runs_to >= CURDATE() - INTERVAL 7 DAY
         AND scheduled_pass_time is null
         ORDER BY stp_indicator DESC, id, stop_id
       `)),
@@ -185,7 +185,7 @@ export class CIFRepository {
         FROM z_schedule
         JOIN z_stop_time ON z_schedule.id = z_stop_time.z_schedule
         WHERE runs_from < CURDATE() + INTERVAL 3 MONTH
-        AND runs_to >= CURDATE()
+        AND runs_to >= CURDATE() - INTERVAL 7 DAY
         ORDER BY stop_id
       `))
     ]);
@@ -205,7 +205,7 @@ export class CIFRepository {
       FROM association a
       JOIN tiploc ON assoc_location = tiploc_code
       WHERE start_date < CURDATE() + INTERVAL 3 MONTH
-      AND end_date >= CURDATE()
+      AND end_date >= CURDATE() - INTERVAL 7 DAY
       ORDER BY stp_indicator DESC, id
     `);
 
