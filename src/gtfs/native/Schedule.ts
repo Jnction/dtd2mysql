@@ -66,7 +66,7 @@ export class Schedule implements OverlayRecord {
       service_id: serviceId,
       trip_id: this.id,
       trip_headsign: null,
-      trip_short_name: this.rsid ?? this.tuid,
+      trip_short_name: this.rsid?.substr(0, 6) ?? this.tuid,
       direction_id: 0,
       wheelchair_accessible: 1,
       bikes_allowed: 0
