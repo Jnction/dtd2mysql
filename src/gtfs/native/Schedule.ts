@@ -157,7 +157,7 @@ export class Schedule implements OverlayRecord {
       route_text_color: null,
       route_color: nameAndColour.colour?.toString(16).padStart(6, '0') ?? null,
       route_url: null,
-      route_desc: `${this.modeDescription} service from ${origin} to ${destination}, ${this.classDescription}, ${this.reservationDescription}`,
+      route_desc: null,
     };
   }
 
