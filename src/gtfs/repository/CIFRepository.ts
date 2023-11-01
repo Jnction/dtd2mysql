@@ -125,7 +125,7 @@ export class CIFRepository {
           // otherwise inherit station data
           const result = Object.assign(stop, station_data);
           delete result['platforms'];
-          result.stop_name += parts[1] === '' ? '' : ` (platform ${parts[1]})`;
+          result.stop_name += parts[1] === '' ? '' : ` (Platform ${parts[1]})`;
           result.location_type = 0;
           return result;
         } else {
