@@ -74,8 +74,8 @@ export class Schedule implements OverlayRecord {
   }
 
   public getNameAndColour(routeLongName : string) : {name : string, colour : number | null} {
-    const rsid = this.rsid ?? this.tuid;
-    const prefix = this.rsid?.substring(0, 2) ?? null;
+    const rsid = this.rsid?.substring(0, 6) ?? this.tuid;
+    const prefix = this.operator ?? null;
     // colours sourced from https://en.wikipedia.org/wiki/Wikipedia:WikiProject_UK_Railways/Colours_list
     const tocData = {
       "AW": {name: "Transport for Wales", colour: 0xff0000},
