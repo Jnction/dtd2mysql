@@ -75,7 +75,7 @@ export class CIFRepository {
         crs_code AS stop_id, -- using the main CRS code as both the id
         crs_code AS stop_code, -- and the public facing code
         MIN(station_name) AS stop_name,
-        null AS stop_desc,
+        NULL AS stop_desc,
         0 AS stop_lat,
         0 AS stop_lon,
         NULL AS zone_id,
@@ -84,31 +84,31 @@ export class CIFRepository {
         NULL AS parent_station,
         IF(POSITION('(CIE' IN MIN(station_name)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
         0 AS wheelchair_boarding,
-        null AS platform_code
+        NULL AS platform_code
       FROM physical_station WHERE crs_code IS NOT NULL AND cate_interchange_status <> 9 -- from the main part of the station
       GROUP BY crs_code
-      union select
-        crs_code as stop_id,
-        crs_code as stop_code,
-        min(tps_description) as stop_name,
-        null as stop_desc,
-        0 as stop_lat,
-        0 as stop_lon,
-        null as zone_id,
-        null as stop_url,
-        1 as location_type,
-        null as parent_station,
+      UNION SELECT
+        crs_code AS stop_id,
+        crs_code AS stop_code,
+        min(tps_description) AS stop_name,
+        NULL AS stop_desc,
+        0 AS stop_lat,
+        0 AS stop_lon,
+        NULL AS zone_id,
+        NULL AS stop_url,
+        1 AS location_type,
+        NULL AS parent_station,
         IF(POSITION('(CIE' IN MIN(tps_description)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
-        0 as wheelchair_boarding,
-        null as platform_code
-      from tiploc 
-      where crs_code is not null and crs_code not in (select crs_reference_code from physical_station)
-      group by crs_code
+        0 AS wheelchair_boarding,
+        NULL AS platform_code
+      FROM tiploc 
+      WHERE crs_code IS NOT NULL AND crs_code NOT IN (SELECT crs_reference_code FROM physical_station)
+      GROUP BY crs_code
       UNION SELECT -- and select all the platforms where scheduled services call at
         CONCAT(physical_station.crs_code, '_', IFNULL(platform, '')) AS stop_id, -- using the CRS code and the platform number as the id
         crs_reference_code AS stop_code, -- and the minor CRS code as the public facing code
         IF(ISNULL(platform), MIN(station_name), CONCAT(MIN(station_name), ' (platform ', platform, ')')) AS stop_name,
-        null AS stop_desc,
+        NULL AS stop_desc,
         0 AS stop_lat,
         0 AS stop_lon,
         NULL AS zone_id,
@@ -120,16 +120,16 @@ export class CIFRepository {
         platform AS platform_code
       FROM physical_station
         INNER JOIN (
-          SELECT distinct location as tiploc_code, cast(null as char(3)) collate utf8mb4_unicode_ci as crs_code, platform FROM stop_time
-          union SELECT distinct null as tiploc_code, location as crs_code, platform FROM z_stop_time
-        ) platforms on physical_station.tiploc_code = platforms.tiploc_code or physical_station.crs_code = platforms.crs_code
+          SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
+          UNION SELECT DISTINCT NULL AS tiploc_code, location AS crs_code, platform FROM z_stop_time
+        ) platforms ON physical_station.tiploc_code = platforms.tiploc_code OR physical_station.crs_code = platforms.crs_code
       WHERE physical_station.crs_code IS NOT NULL
       GROUP BY physical_station.crs_code, platform
       UNION SELECT
         CONCAT(tiploc.crs_code, '_', IFNULL(platform, '')) AS stop_id, -- using the minor CRS code and the platform number as the id
         tiploc.crs_code AS stop_code, -- and the minor CRS code as the public facing code
         IF(ISNULL(platform), MIN(tps_description), CONCAT(MIN(tps_description), ' (platform ', platform, ')')) AS stop_name,
-        null as stop_desc,
+        NULL AS stop_desc,
         0 AS stop_lat,
         0 AS stop_lon,
         NULL AS zone_id,
@@ -141,10 +141,10 @@ export class CIFRepository {
         platform AS platform_code
       FROM tiploc
         INNER JOIN (
-          SELECT distinct location as tiploc_code, cast(null as char(3)) collate utf8mb4_unicode_ci as crs_code, platform FROM stop_time
-          union SELECT distinct null as tiploc_code, location as crs_code, platform FROM z_stop_time
-        ) platforms on tiploc.tiploc_code = platforms.tiploc_code or tiploc.crs_code = platforms.crs_code
-      WHERE tiploc.crs_code IS NOT NULL and tiploc.crs_code not in (select crs_reference_code from physical_station)
+          SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
+          UNION SELECT DISTINCT NULL AS tiploc_code, location AS crs_code, platform FROM z_stop_time
+        ) platforms ON tiploc.tiploc_code = platforms.tiploc_code OR tiploc.crs_code = platforms.crs_code
+      WHERE tiploc.crs_code IS NOT NULL AND tiploc.crs_code NOT IN (SELECT crs_reference_code FROM physical_station)
       GROUP BY tiploc.crs_code, platform
     `);
 
