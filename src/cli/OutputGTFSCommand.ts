@@ -98,6 +98,7 @@ export class OutputGTFSCommand implements CLICommand {
       }
 
       const route = await schedule.toRoute(this.repository);
+      // group schedules with the same hash into the same GTFS route
       const routeHash = getRouteHash(route);
       routes[routeHash] = routes[routeHash] || route;
       const routeId = routes[routeHash].route_id;
