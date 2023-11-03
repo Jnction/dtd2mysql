@@ -1,3 +1,4 @@
+import {Route} from '../gtfs/file/Route';
 import {CLICommand} from "./CLICommand";
 import {CIFRepository} from "../gtfs/repository/CIFRepository";
 import {Schedule} from "../gtfs/native/Schedule";
@@ -87,14 +88,20 @@ export class OutputGTFSCommand implements CLICommand {
     const routeFile = this.output.open(this.baseDir + "routes.txt");
     const routes = {};
 
+    function getRouteHash(route : Route) {
+      return `${route.agency_id}_${route.route_type}_${route.route_long_name}`
+    }
+
     for (const schedule of schedules) {
       if (schedule.stopTimes.length <= 1) {
         continue;
       }
 
       const route = await schedule.toRoute(this.repository);
-      routes[route.route_id] = routes[route.route_id] || route;
-      const routeId = routes[route.route_id].route_id;
+      // group schedules with the same hash into the same GTFS route
+      const routeHash = getRouteHash(route);
+      routes[routeHash] = routes[routeHash] || route;
+      const routeId = routes[routeHash].route_id;
       const serviceId = serviceIds[schedule.calendar.id];
 
       trips.write(schedule.toTrip(serviceId, routeId));

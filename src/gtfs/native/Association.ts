@@ -110,9 +110,9 @@ export class Association implements OverlayRecord {
     let stopSequence: number = 1;
 
     const stops = [
-      ...start.map(s => cloneStop(s, stopSequence++, assoc.id)),
-      cloneStop(assocStop, stopSequence++, assoc.id),
-      ...end.map(s => cloneStop(s, stopSequence++, assoc.id, assocStop))
+      ...start.map(s => cloneStop(s, stopSequence++, assoc.id, undefined, false, this.assocType === AssociationType.Split)),
+      cloneStop(assocStop, stopSequence++, assoc.id, undefined, this.assocType === AssociationType.Join, this.assocType === AssociationType.Split),
+      ...end.map(s => cloneStop(s, stopSequence++, assoc.id, assocStop, this.assocType === AssociationType.Join, false))
     ];
 
     const calendar = this.dateIndicator === DateIndicator.Next ? assoc.calendar.shiftBackward() : assoc.calendar;
@@ -164,7 +164,14 @@ export class Association implements OverlayRecord {
 /**
  * Clone the given stop overriding the sequence number and modifying the arrival/departure times if necessary
  */
-function cloneStop(stop: StopTime, stopSequence: number, tripId: number, assocStop: StopTime | null = null): StopTime {
+function cloneStop(
+    stop: StopTime,
+    stopSequence: number,
+    tripId: number,
+    assocStop: StopTime | null = null,
+    disablePickup: boolean = false,
+    disableDropOff: boolean = false
+): StopTime {
   const assocTime = moment.duration(assocStop && assocStop.arrival_time ? assocStop.arrival_time : "00:00");
   const departureTime = stop.departure_time ? moment.duration(stop.departure_time) : undefined;
 
@@ -178,7 +185,12 @@ function cloneStop(stop: StopTime, stopSequence: number, tripId: number, assocSt
     arrivalTime.add(1, "day");
   }
 
-  return Object.assign({}, stop, {
+  let override = disablePickup ? {pickup_type : 1} : {};
+  if (disableDropOff) {
+    override = Object.assign(override, {drop_off_type : 1});
+  }
+
+  return Object.assign({}, stop, override, {
     arrival_time: arrivalTime ? formatDuration(arrivalTime.asSeconds()) : undefined,
     departure_time: departureTime ? formatDuration(departureTime.asSeconds()) : undefined,
     stop_sequence: stopSequence,

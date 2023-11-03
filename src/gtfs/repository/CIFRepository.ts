@@ -75,7 +75,7 @@ export class CIFRepository {
         crs_code AS stop_id, -- using the main CRS code as both the id
         crs_code AS stop_code, -- and the public facing code
         MIN(station_name) AS stop_name,
-        MIN(cate_interchange_status) AS stop_desc,
+        NULL AS stop_desc,
         0 AS stop_lat,
         0 AS stop_lon,
         NULL AS zone_id,
@@ -84,29 +84,68 @@ export class CIFRepository {
         NULL AS parent_station,
         IF(POSITION('(CIE' IN MIN(station_name)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
         0 AS wheelchair_boarding,
-        null AS platform_code
+        NULL AS platform_code
       FROM physical_station WHERE crs_code IS NOT NULL AND cate_interchange_status <> 9 -- from the main part of the station
       GROUP BY crs_code
+      UNION SELECT
+        crs_code AS stop_id,
+        crs_code AS stop_code,
+        min(tps_description) AS stop_name,
+        NULL AS stop_desc,
+        0 AS stop_lat,
+        0 AS stop_lon,
+        NULL AS zone_id,
+        NULL AS stop_url,
+        1 AS location_type,
+        NULL AS parent_station,
+        IF(POSITION('(CIE' IN MIN(tps_description)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
+        0 AS wheelchair_boarding,
+        NULL AS platform_code
+      FROM tiploc 
+      WHERE crs_code IS NOT NULL AND crs_code NOT IN (SELECT crs_reference_code FROM physical_station)
+      GROUP BY crs_code
       UNION SELECT -- and select all the platforms where scheduled services call at
-        CONCAT(crs_reference_code, '_', IFNULL(platform, '')) AS stop_id, -- using the minor CRS code and the platform number as the id
+        CONCAT(physical_station.crs_code, '_', IFNULL(platform, '')) AS stop_id, -- using the CRS code and the platform number as the id
         crs_reference_code AS stop_code, -- and the minor CRS code as the public facing code
         IF(ISNULL(platform), MIN(station_name), CONCAT(MIN(station_name), ' (platform ', platform, ')')) AS stop_name,
-        MIN(cate_interchange_status) AS stop_desc,
+        NULL AS stop_desc,
         0 AS stop_lat,
         0 AS stop_lon,
         NULL AS zone_id,
         NULL AS stop_url,
         0 AS location_type,
-        crs_code AS parent_station,
+        physical_station.crs_code AS parent_station,
         IF(POSITION('(CIE' IN MIN(station_name)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
         0 AS wheelchair_boarding,
         platform AS platform_code
       FROM physical_station
         INNER JOIN (
-          SELECT distinct location, platform FROM stop_time
-        ) platforms on physical_station.tiploc_code = platforms.location
-      WHERE crs_code IS NOT NULL
-      GROUP BY crs_code, platform
+          SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
+          UNION SELECT DISTINCT NULL AS tiploc_code, location AS crs_code, platform FROM z_stop_time
+        ) platforms ON physical_station.tiploc_code = platforms.tiploc_code OR physical_station.crs_code = platforms.crs_code
+      WHERE physical_station.crs_code IS NOT NULL
+      GROUP BY physical_station.crs_code, platform
+      UNION SELECT
+        CONCAT(tiploc.crs_code, '_', IFNULL(platform, '')) AS stop_id, -- using the minor CRS code and the platform number as the id
+        tiploc.crs_code AS stop_code, -- and the minor CRS code as the public facing code
+        IF(ISNULL(platform), MIN(tps_description), CONCAT(MIN(tps_description), ' (platform ', platform, ')')) AS stop_name,
+        NULL AS stop_desc,
+        0 AS stop_lat,
+        0 AS stop_lon,
+        NULL AS zone_id,
+        NULL AS stop_url,
+        0 AS location_type,
+        tiploc.crs_code AS parent_station,
+        IF(POSITION('(CIE' IN MIN(tps_description)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
+        0 AS wheelchair_boarding,
+        platform AS platform_code
+      FROM tiploc
+        INNER JOIN (
+          SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
+          UNION SELECT DISTINCT NULL AS tiploc_code, location AS crs_code, platform FROM z_stop_time
+        ) platforms ON tiploc.tiploc_code = platforms.tiploc_code OR tiploc.crs_code = platforms.crs_code
+      WHERE tiploc.crs_code IS NOT NULL AND tiploc.crs_code NOT IN (SELECT crs_reference_code FROM physical_station)
+      GROUP BY tiploc.crs_code, platform
     `);
 
     // overlay the long and latitude values from configuration
@@ -125,7 +164,7 @@ export class CIFRepository {
           // otherwise inherit station data
           const result = Object.assign(stop, station_data);
           delete result['platforms'];
-          result.stop_name += parts[1] === '' ? '' : ` (platform ${parts[1]})`;
+          result.stop_name += parts[1] === '' ? '' : ` (Platform ${parts[1]})`;
           result.location_type = 0;
           return result;
         } else {
@@ -157,7 +196,7 @@ export class CIFRepository {
         SELECT
           schedule.id AS id, train_uid, retail_train_id, runs_from, runs_to,
           monday, tuesday, wednesday, thursday, friday, saturday, sunday,
-          crs_reference_code as crs_code, stp_indicator, public_arrival_time, public_departure_time,
+          crs_code, stp_indicator, public_arrival_time, public_departure_time,
           IF(train_status="S", "SS", train_category) AS train_category,
           scheduled_arrival_time AS scheduled_arrival_time,
           scheduled_departure_time AS scheduled_departure_time,
@@ -171,8 +210,9 @@ export class CIFRepository {
           stop_time.id IS NULL OR crs_code IS NOT NULL
         )
         AND runs_from < CURDATE() + INTERVAL 3 MONTH
-        AND runs_to >= CURDATE()
+        AND runs_to >= CURDATE() - INTERVAL 7 DAY
         AND scheduled_pass_time is null
+        AND train_category not in ('OL', 'SS', 'BS')
         ORDER BY stp_indicator DESC, id, stop_id
       `)),
       scheduleBuilder.loadSchedules(this.stream.query(`
@@ -181,11 +221,13 @@ export class CIFRepository {
           monday, tuesday, wednesday, thursday, friday, saturday, sunday,
           stp_indicator, location AS crs_code, train_category,
           public_arrival_time, public_departure_time, scheduled_arrival_time, scheduled_departure_time,
-          platform, NULL AS atoc_code, z_stop_time.id AS stop_id, activity, NULL AS reservations, "S" AS train_class 
+          platform, atoc_code, z_stop_time.id AS stop_id, activity, NULL AS reservations, "S" AS train_class 
         FROM z_schedule
+        LEFT JOIN z_schedule_extra ON z_schedule.id = z_schedule_extra.schedule
         JOIN z_stop_time ON z_schedule.id = z_stop_time.z_schedule
         WHERE runs_from < CURDATE() + INTERVAL 3 MONTH
-        AND runs_to >= CURDATE()
+        AND runs_to >= CURDATE() - INTERVAL 7 DAY
+        AND train_category not in ('OL', 'SS', 'BS')
         ORDER BY stop_id
       `))
     ]);
@@ -205,7 +247,7 @@ export class CIFRepository {
       FROM association a
       JOIN tiploc ON assoc_location = tiploc_code
       WHERE start_date < CURDATE() + INTERVAL 3 MONTH
-      AND end_date >= CURDATE()
+      AND end_date >= CURDATE() - INTERVAL 7 DAY
       ORDER BY stp_indicator DESC, id
     `);
 

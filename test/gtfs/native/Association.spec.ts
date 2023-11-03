@@ -28,14 +28,20 @@ describe("Association", () => {
     chai.expect(result.tuid).to.equal("A_B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("TON");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
+    chai.expect(result.stopTimes[0].pickup_type).to.equal(0);
     chai.expect(result.stopTimes[1].stop_id).to.equal("PDW");
     chai.expect(result.stopTimes[1].stop_sequence).to.equal(2);
+    chai.expect(result.stopTimes[1].pickup_type).to.equal(0);
+    chai.expect(result.stopTimes[1].drop_off_type).to.equal(1);
     chai.expect(result.stopTimes[2].stop_id).to.equal("ASH");
+    chai.expect(result.stopTimes[2].pickup_type).to.equal(0);
+    chai.expect(result.stopTimes[2].drop_off_type).to.equal(1);
     chai.expect(result.stopTimes[2].stop_sequence).to.equal(3);
     chai.expect(result.stopTimes[2].arrival_time).to.equal("12:00:00");
     chai.expect(result.stopTimes[2].departure_time).to.equal("12:05:00");
     chai.expect(result.stopTimes[3].stop_id).to.equal("DOV");
     chai.expect(result.stopTimes[3].stop_sequence).to.equal(4);
+    chai.expect(result.stopTimes[3].drop_off_type).to.equal(0);
   });
 
   it("re-sequences splits", () => {
@@ -150,14 +156,20 @@ describe("Association", () => {
     chai.expect(result.tuid).to.equal("B_A");
     chai.expect(result.stopTimes[0].stop_id).to.equal("DOV");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
+    chai.expect(result.stopTimes[0].pickup_type).to.equal(0);
     chai.expect(result.stopTimes[1].stop_id).to.equal("ASH");
     chai.expect(result.stopTimes[1].stop_sequence).to.equal(2);
     chai.expect(result.stopTimes[1].arrival_time).to.equal("11:55:00");
     chai.expect(result.stopTimes[1].departure_time).to.equal("12:00:00");
+    chai.expect(result.stopTimes[1].pickup_type).to.equal(1);
+    chai.expect(result.stopTimes[1].drop_off_type).to.equal(0);
     chai.expect(result.stopTimes[2].stop_id).to.equal("PDW");
     chai.expect(result.stopTimes[2].stop_sequence).to.equal(3);
+    chai.expect(result.stopTimes[2].pickup_type).to.equal(1);
+    chai.expect(result.stopTimes[2].drop_off_type).to.equal(0);
     chai.expect(result.stopTimes[3].stop_id).to.equal("TON");
     chai.expect(result.stopTimes[3].stop_sequence).to.equal(4);
+    chai.expect(result.stopTimes[3].drop_off_type).to.equal(0);
   });
 
   it("re-sequences applies joins", () => {
