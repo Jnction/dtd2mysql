@@ -212,7 +212,7 @@ export class CIFRepository {
         AND runs_from < CURDATE() + INTERVAL 3 MONTH
         AND runs_to >= CURDATE() - INTERVAL 7 DAY
         AND scheduled_pass_time is null
-        AND train_category not in ('OL', 'SS', 'BS')
+        AND (train_category IS NULL OR train_category NOT IN ('OL', 'SS', 'BS'))
         ORDER BY stp_indicator DESC, id, stop_id
       `)),
       scheduleBuilder.loadSchedules(this.stream.query(`
@@ -227,7 +227,7 @@ export class CIFRepository {
         JOIN z_stop_time ON z_schedule.id = z_stop_time.z_schedule
         WHERE runs_from < CURDATE() + INTERVAL 3 MONTH
         AND runs_to >= CURDATE() - INTERVAL 7 DAY
-        AND train_category not in ('OL', 'SS', 'BS')
+        AND (train_category IS NULL OR train_category NOT IN ('OL', 'SS', 'BS'))
         ORDER BY stop_id
       `))
     ]);
