@@ -19,7 +19,7 @@ export class CIFRepository {
   constructor(
     private readonly db: DatabaseConnection,
     private readonly stream,
-    private readonly stationCoordinates: StationCoordinates
+    public stationCoordinates: StationCoordinates
   ) {}
 
   /**
@@ -43,27 +43,140 @@ export class CIFRepository {
    * Return all the stops with some configurable long/lat applied
    */
   public async getStops(): Promise<Stop[]> {
-    const [results] = await this.db.query<Stop[]>(`
-      SELECT
-        crs_code AS stop_id, 
-        tiploc_code AS stop_code,
-        station_name AS stop_name,
-        cate_interchange_status AS stop_desc,
+    return this.stops;
+  }
+
+  /*
+  Every passenger station in the National Rail network has a CRS code, however, some multi-part stations
+  may have additional minor CRS code specifying a part of it. For example,
+  STP (London St Pancras) has a minor code SPL representing the Thameslink platforms, while the main code represents the terminal platforms;
+  PAD (London Paddington) has a minor code PDX representing the Crossrail platforms, while the main code represents the terminal platforms.
+
+  In the database, such stations will have multiple entries, one for each TIPLOC code, where the one with cate_interchange_status <> 9 is the main entry
+  which the CRS code (crs_code) and the minor CRS code (crs_reference_code) are the same.
+
+  Using St Pancras as an example, there are 4 entries listed in the station database:
+  TIPLOC    CRS    minor CRS    main entry?   MCT       location
+  ------------------------------------------------------------------------------------
+  STPX      STP    STP          *             15        Midland Main Line platforms
+  STPADOM   STP    STP                        15        Domestic High Speed platforms
+  STPXBOX   STP    SPL                        15        Thameslink platforms
+  STPANCI   SPX    SPX          *             35        International platforms
+
+  In the National Rail systems, the international station is treated as a distinct station from the domestic one,
+  however the 3 remaining parts (Midland, Thameslink and High Speed Domestic) are the same station.
+
+  The stop list will return one entry for each station (not its constituent parts) as a GTFS station identified by its main CRS code,
+  and one entry for each platform as a GTFS stop identified by its minor CRS code and the platform number, associated to the station with the main CRS code.
+   */
+  private stops : Promise<Stop[]> = (async () => {
+    const [results] : [Stop[]] = await this.db.query<Stop[]>(`
+      SELECT -- select all the physical stations
+        crs_code AS stop_id, -- using the main CRS code as both the id
+        crs_code AS stop_code, -- and the public facing code
+        MIN(station_name) AS stop_name,
+        NULL AS stop_desc,
         0 AS stop_lat,
         0 AS stop_lon,
         NULL AS zone_id,
         NULL AS stop_url,
-        NULL AS location_type,
+        1 AS location_type,
         NULL AS parent_station,
-        IF(POSITION("(CIE" IN station_name), "Europe/Dublin", "Europe/London") AS stop_timezone,
-        0 AS wheelchair_boarding 
-      FROM physical_station WHERE crs_code IS NOT NULL
+        IF(POSITION('(CIE' IN MIN(station_name)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
+        0 AS wheelchair_boarding,
+        NULL AS platform_code
+      FROM physical_station WHERE crs_code IS NOT NULL AND cate_interchange_status <> 9 -- from the main part of the station
       GROUP BY crs_code
+      UNION SELECT
+        crs_code AS stop_id,
+        crs_code AS stop_code,
+        min(tps_description) AS stop_name,
+        NULL AS stop_desc,
+        0 AS stop_lat,
+        0 AS stop_lon,
+        NULL AS zone_id,
+        NULL AS stop_url,
+        1 AS location_type,
+        NULL AS parent_station,
+        IF(POSITION('(CIE' IN MIN(tps_description)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
+        0 AS wheelchair_boarding,
+        NULL AS platform_code
+      FROM tiploc 
+      WHERE crs_code IS NOT NULL AND crs_code NOT IN (SELECT crs_reference_code FROM physical_station)
+      GROUP BY crs_code
+      UNION SELECT -- and select all the platforms where scheduled services call at
+        CONCAT(physical_station.crs_code, '_', IFNULL(platform, '')) AS stop_id, -- using the CRS code and the platform number as the id
+        crs_reference_code AS stop_code, -- and the minor CRS code as the public facing code
+        IF(ISNULL(platform), MIN(station_name), CONCAT(MIN(station_name), ' (platform ', platform, ')')) AS stop_name,
+        NULL AS stop_desc,
+        0 AS stop_lat,
+        0 AS stop_lon,
+        NULL AS zone_id,
+        NULL AS stop_url,
+        0 AS location_type,
+        physical_station.crs_code AS parent_station,
+        IF(POSITION('(CIE' IN MIN(station_name)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
+        0 AS wheelchair_boarding,
+        platform AS platform_code
+      FROM physical_station
+        INNER JOIN (
+          SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
+          UNION SELECT DISTINCT NULL AS tiploc_code, location AS crs_code, platform FROM z_stop_time
+        ) platforms ON physical_station.tiploc_code = platforms.tiploc_code OR physical_station.crs_code = platforms.crs_code
+      WHERE physical_station.crs_code IS NOT NULL
+      GROUP BY physical_station.crs_code, platform
+      UNION SELECT
+        CONCAT(tiploc.crs_code, '_', IFNULL(platform, '')) AS stop_id, -- using the minor CRS code and the platform number as the id
+        tiploc.crs_code AS stop_code, -- and the minor CRS code as the public facing code
+        IF(ISNULL(platform), MIN(tps_description), CONCAT(MIN(tps_description), ' (platform ', platform, ')')) AS stop_name,
+        NULL AS stop_desc,
+        0 AS stop_lat,
+        0 AS stop_lon,
+        NULL AS zone_id,
+        NULL AS stop_url,
+        0 AS location_type,
+        tiploc.crs_code AS parent_station,
+        IF(POSITION('(CIE' IN MIN(tps_description)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
+        0 AS wheelchair_boarding,
+        platform AS platform_code
+      FROM tiploc
+        INNER JOIN (
+          SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
+          UNION SELECT DISTINCT NULL AS tiploc_code, location AS crs_code, platform FROM z_stop_time
+        ) platforms ON tiploc.tiploc_code = platforms.tiploc_code OR tiploc.crs_code = platforms.crs_code
+      WHERE tiploc.crs_code IS NOT NULL AND tiploc.crs_code NOT IN (SELECT crs_reference_code FROM physical_station)
+      GROUP BY tiploc.crs_code, platform
     `);
 
     // overlay the long and latitude values from configuration
-    return results.map(stop => Object.assign(stop, this.stationCoordinates[stop.stop_id]));
-  }
+    return results.map(stop => {
+      const station_data = this.stationCoordinates[stop.stop_code] ?? this.stationCoordinates[stop.parent_station];
+      if (stop.stop_id.includes('_')) {
+        const parts = stop.stop_id.split('_');
+        if (parts[1] !== '') {
+          const platform_data = (station_data?.platforms ?? [])[parts[1]];
+          if (platform_data !== undefined) {
+            // use platform data if available
+            return Object.assign(stop, platform_data);
+          }
+        }
+        if (station_data !== undefined) {
+          // otherwise inherit station data
+          const result = Object.assign(stop, station_data);
+          delete result['platforms'];
+          result.stop_name += parts[1] === '' ? '' : ` (Platform ${parts[1]})`;
+          result.location_type = 0;
+          return result;
+        } else {
+          return stop;
+        }
+      } else {
+        const result = Object.assign(stop, this.stationCoordinates[stop.stop_code])
+        delete result['platforms'];
+        return result;
+      }
+    });
+  })();
 
   /**
    * Return the schedules and z trains. These queries probably require some explanation:
@@ -97,21 +210,24 @@ export class CIFRepository {
           stop_time.id IS NULL OR crs_code IS NOT NULL
         )
         AND runs_from < CURDATE() + INTERVAL 3 MONTH
-        AND runs_to >= CURDATE()
+        AND runs_to >= CURDATE() - INTERVAL 7 DAY
         AND scheduled_pass_time is null
+        AND (train_category IS NULL OR train_category NOT IN ('OL', 'SS', 'BS'))
         ORDER BY stp_indicator DESC, id, stop_id
       `)),
       scheduleBuilder.loadSchedules(this.stream.query(`
         SELECT
-          ${lastSchedule.id} + z_schedule.id AS id, train_uid, null, runs_from, runs_to,
+          ${lastSchedule.id} + z_schedule.id AS id, train_uid, null as retail_train_id, runs_from, runs_to,
           monday, tuesday, wednesday, thursday, friday, saturday, sunday,
           stp_indicator, location AS crs_code, train_category,
           public_arrival_time, public_departure_time, scheduled_arrival_time, scheduled_departure_time,
-          platform, NULL AS atoc_code, z_stop_time.id AS stop_id, activity, NULL AS reservations, "S" AS train_class 
+          platform, atoc_code, z_stop_time.id AS stop_id, activity, NULL AS reservations, "S" AS train_class 
         FROM z_schedule
+        LEFT JOIN z_schedule_extra ON z_schedule.id = z_schedule_extra.schedule
         JOIN z_stop_time ON z_schedule.id = z_stop_time.z_schedule
         WHERE runs_from < CURDATE() + INTERVAL 3 MONTH
-        AND runs_to >= CURDATE()
+        AND runs_to >= CURDATE() - INTERVAL 7 DAY
+        AND (train_category IS NULL OR train_category NOT IN ('OL', 'SS', 'BS'))
         ORDER BY stop_id
       `))
     ]);
@@ -131,7 +247,7 @@ export class CIFRepository {
       FROM association a
       JOIN tiploc ON assoc_location = tiploc_code
       WHERE start_date < CURDATE() + INTERVAL 3 MONTH
-      AND end_date >= CURDATE()
+      AND end_date >= CURDATE() - INTERVAL 7 DAY
       ORDER BY stp_indicator DESC, id
     `);
 
@@ -252,7 +368,9 @@ export type StationCoordinates = {
     stop_lat: number,
     stop_lon: number,
     stop_name: string,
-    wheelchair_boarding: 0 | 1 | 2
+    location_type?: number,
+    wheelchair_boarding: 0 | 1 | 2,
+    platforms?: {[key : string] : StationCoordinates}
   }
 };
 

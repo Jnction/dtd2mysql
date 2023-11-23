@@ -1,3 +1,4 @@
+import {Route} from '../gtfs/file/Route';
 import {CLICommand} from "./CLICommand";
 import {CIFRepository} from "../gtfs/repository/CIFRepository";
 import {Schedule} from "../gtfs/native/Schedule";
@@ -29,6 +30,11 @@ export class OutputGTFSCommand implements CLICommand {
 
     if (!fs.existsSync(this.baseDir)) {
       throw new Error(`Output path ${this.baseDir} does not exist.`);
+    }
+
+    if (argv.length > 4) {
+      const json = JSON.parse(fs.readFileSync(argv[4], 'utf-8'));
+      this.repository.stationCoordinates = json;
     }
 
     const associationsP = this.repository.getAssociations();
@@ -75,21 +81,27 @@ export class OutputGTFSCommand implements CLICommand {
   /**
    * trips.txt, stop_times.txt and routes.txt have interdependencies so they are written together
    */
-  private copyTrips(schedules: Schedule[], serviceIds: ServiceIdIndex): Promise<any> {
+  private async copyTrips(schedules: Schedule[], serviceIds: ServiceIdIndex): Promise<any> {
     console.log("Writing trips.txt, stop_times.txt and routes.txt");
     const trips = this.output.open(this.baseDir + "trips.txt");
     const stopTimes = this.output.open(this.baseDir + "stop_times.txt");
     const routeFile = this.output.open(this.baseDir + "routes.txt");
     const routes = {};
 
+    function getRouteHash(route : Route) {
+      return `${route.agency_id}_${route.route_type}_${route.route_long_name}`
+    }
+
     for (const schedule of schedules) {
       if (schedule.stopTimes.length <= 1) {
         continue;
       }
 
-      const route = schedule.toRoute();
-      routes[route.route_short_name] = routes[route.route_short_name] || route;
-      const routeId = routes[route.route_short_name].route_id;
+      const route = await schedule.toRoute(this.repository);
+      // group schedules with the same hash into the same GTFS route
+      const routeHash = getRouteHash(route);
+      routes[routeHash] = routes[routeHash] || route;
+      const routeId = routes[routeHash].route_id;
       const serviceId = serviceIds[schedule.calendar.id];
 
       trips.write(schedule.toTrip(serviceId, routeId));

@@ -1,7 +1,8 @@
+import {StopPlatform} from './StopTime';
 
 export interface Stop {
-  stop_id: CRS;
-  stop_code: TIPLOC;
+  stop_id: StopPlatform;
+  stop_code: CRS;
   stop_name: string;
   stop_desc: string;
   stop_lat: number;
@@ -12,7 +13,7 @@ export interface Stop {
   parent_station: CRS;
   stop_timezone: string;
   wheelchair_boarding: 0 | 1 | 2;
+  platform_code: string;
 }
 
 export type CRS = string;
-export type TIPLOC = string;
