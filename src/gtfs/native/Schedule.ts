@@ -1,13 +1,11 @@
-
-import {StopTime} from "../file/StopTime";
-import {CIFRepository} from '../repository/CIFRepository';
-import {OverlapType, ScheduleCalendar} from "./ScheduleCalendar";
-import {Trip} from "../file/Trip";
-import {Route, RouteType} from "../file/Route";
 import {AgencyID} from "../file/Agency";
+import {Route, RouteType} from "../file/Route";
 import {CRS} from "../file/Stop";
-import {IdGenerator, OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
-import * as memoize  from "memoized-class-decorator";
+import {StopTime} from "../file/StopTime";
+import {Trip} from "../file/Trip";
+import {CIFRepository} from '../repository/CIFRepository';
+import {OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
+import {ScheduleCalendar} from "./ScheduleCalendar";
 
 /**
  * A CIF schedule (BS record)
@@ -60,12 +58,12 @@ export class Schedule implements OverlayRecord {
   /**
    * Convert to a GTFS Trip
    */
-  public toTrip(serviceId: string, routeId: number): Trip {
+  public async toTrip(serviceId: string, routeId: number, cifRepository : CIFRepository): Promise<Trip> {
     return {
       route_id: routeId,
       service_id: serviceId,
       trip_id: this.id,
-      trip_headsign: null,
+      trip_headsign: await cifRepository.getStopName(this.destination) ?? this.destination,
       trip_short_name: this.rsid?.substr(0, 6) ?? this.tuid,
       direction_id: 0,
       wheelchair_accessible: 1,
@@ -143,9 +141,8 @@ export class Schedule implements OverlayRecord {
    * Convert to GTFS Route
    */
   public async toRoute(cifRepository : CIFRepository): Promise<Route> {
-    const stop_data = await cifRepository.getStops();
-    const origin = stop_data.find(stop => stop.stop_code === this.origin)?.stop_name ?? this.origin;
-    const destination = stop_data.find(stop => stop.stop_code === this.destination)?.stop_name ?? this.destination;
+    const origin = await cifRepository.getStopName(this.origin) ?? this.origin;
+    const destination = await cifRepository.getStopName(this.destination) ?? this.destination;
     const routeLongName = `${origin} → ${destination}`;
     const nameAndColour = this.getNameAndColour(routeLongName);
     return {
@@ -192,6 +189,5 @@ export class Schedule implements OverlayRecord {
   public stopAt(location: CRS): StopTime | undefined {
     return <StopTime>this.stopTimes.find(s => s.stop_id.substr(0, 3) === location);
   }
-
 }
 

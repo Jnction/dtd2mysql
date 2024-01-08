@@ -4,7 +4,7 @@ export interface StopTime {
   departure_time: string;
   stop_id: StopPlatform;
   stop_sequence: number;
-  stop_headsign: null;
+  stop_headsign: string | null;
   pickup_type: 0 | 1 | 2 | 3;
   drop_off_type: 0 | 1 | 2 | 3;
   shape_dist_traveled: null;

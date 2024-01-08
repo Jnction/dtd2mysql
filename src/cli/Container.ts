@@ -1,4 +1,5 @@
 import * as memoize from "memoized-class-decorator";
+import {Pool} from 'mysql2';
 import {CLICommand} from "./CLICommand";
 import {ImportFeedCommand} from "./ImportFeedCommand";
 import {DatabaseConfiguration, DatabaseConnection} from "../database/DatabaseConnection";
@@ -145,7 +146,7 @@ export class Container {
   }
 
   @memoize
-  public getDatabaseStream() {
+  public getDatabaseStream() : Pool{
     return require('mysql2').createPool(this.databaseConfiguration);
   }
 

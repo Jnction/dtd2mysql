@@ -1,4 +1,5 @@
 
+import {Pool} from 'mysql2';
 import {DatabaseConnection} from "../../database/DatabaseConnection";
 import {Transfer} from "../file/Transfer";
 import {CRS, Stop} from "../file/Stop";
@@ -18,7 +19,7 @@ export class CIFRepository {
 
   constructor(
     private readonly db: DatabaseConnection,
-    private readonly stream,
+    private readonly stream: Pool,
     public stationCoordinates: StationCoordinates
   ) {}
 
@@ -190,6 +191,7 @@ export class CIFRepository {
   public async getSchedules(): Promise<ScheduleResults> {
     const scheduleBuilder = new ScheduleBuilder();
     const [[lastSchedule]] = await this.db.query("SELECT id FROM schedule ORDER BY id desc LIMIT 1");
+    const stop_data = await this.getStops();
 
     await Promise.all([
       scheduleBuilder.loadSchedules(this.stream.query(`
@@ -214,7 +216,7 @@ export class CIFRepository {
         AND scheduled_pass_time is null
         AND (train_category IS NULL OR train_category NOT IN ('OL', 'SS', 'BS'))
         ORDER BY stp_indicator DESC, id, stop_id
-      `)),
+      `), stop_data),
       scheduleBuilder.loadSchedules(this.stream.query(`
         SELECT
           ${lastSchedule.id} + z_schedule.id AS id, train_uid, null as retail_train_id, runs_from, runs_to,
@@ -229,7 +231,7 @@ export class CIFRepository {
         AND runs_to >= CURDATE() - INTERVAL 7 DAY
         AND (train_category IS NULL OR train_category NOT IN ('OL', 'SS', 'BS'))
         ORDER BY stop_id
-      `))
+      `), stop_data)
     ]);
 
     return scheduleBuilder.results;
@@ -334,6 +336,22 @@ export class CIFRepository {
     return Promise.all([this.db.end(), this.stream.end()]);
   }
 
+  public async getStopName(code : CRS) : Promise<string | null> {
+    const stop_data = await this.getStops();
+    return CIFRepository.getStopNameFromStopData(stop_data, code);
+  }
+
+  public static getStopNameFromStopData(stop_data : Stop[], code : CRS) : string | null {
+    const longName = CIFRepository.getFullStopNameFromStopData(stop_data, code);
+    if (longName === null || longName.toUpperCase().includes('MAESTEG')) {
+      return longName;
+    }
+    return longName.replace(/ \(.*\)$/g, '');
+  }
+
+  public static getFullStopNameFromStopData(stop_data : Stop[], code : CRS) : string | null {
+    return stop_data.find(stop => stop.stop_code === code)?.stop_name ?? null;
+  }
 }
 
 export interface ScheduleStopTimeRow {

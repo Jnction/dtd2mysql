@@ -104,7 +104,7 @@ export class OutputGTFSCommand implements CLICommand {
       const routeId = routes[routeHash].route_id;
       const serviceId = serviceIds[schedule.calendar.id];
 
-      trips.write(schedule.toTrip(serviceId, routeId));
+      trips.write(await schedule.toTrip(serviceId, routeId, this.repository));
       schedule.stopTimes.forEach(r => stopTimes.write(r));
     }
 

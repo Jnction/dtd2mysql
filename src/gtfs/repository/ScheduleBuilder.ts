@@ -1,9 +1,11 @@
+import {Query} from 'mysql2';
+import {getCrsFromStopId, Stop} from '../file/Stop';
 import {IdGenerator, STP} from "../native/OverlayRecord";
 import {Schedule} from "../native/Schedule";
 import {RouteType} from "../file/Route";
 import moment = require("moment");
 import {ScheduleCalendar} from "../native/ScheduleCalendar";
-import {ScheduleStopTimeRow} from "./CIFRepository";
+import {CIFRepository, ScheduleStopTimeRow} from "./CIFRepository";
 import {StopTime} from "../file/StopTime";
 
 const pickupActivities = ["T ", "TB", "U "];
@@ -21,7 +23,7 @@ export class ScheduleBuilder {
   /**
    * Take a stream of ScheduleStopTimeRow, turn them into Schedule objects and add the result to the schedules
    */
-  public loadSchedules(results: any): Promise<void> {
+  public loadSchedules(results: Query, stop_data : Stop[]): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       let stops: StopTime[] = [];
       let prevRow: ScheduleStopTimeRow;
@@ -29,7 +31,11 @@ export class ScheduleBuilder {
 
       results.on("result", (row: ScheduleStopTimeRow) => {
         if (prevRow && prevRow.id !== row.id) {
-          this.schedules.push(this.createSchedule(prevRow, stops));
+          const destination_crs = stops.length === 0 ? null : getCrsFromStopId(stops[stops.length - 1].stop_id);
+          this.schedules.push(this.createSchedule(prevRow,
+              stops,
+              destination_crs === null ? null : CIFRepository.getStopNameFromStopData(stop_data, destination_crs) ?? destination_crs
+          ));
           stops = [];
 
           departureHour = row.public_arrival_time
@@ -54,9 +60,8 @@ export class ScheduleBuilder {
       });
 
       results.on("end", () => {
-        if (prevRow) {
-          this.schedules.push(this.createSchedule(prevRow, stops));
-        }
+        const destination_crs = stops.length === 0 ? null : getCrsFromStopId(stops[stops.length - 1].stop_id);
+        this.schedules.push(this.createSchedule(prevRow, stops, destination_crs === null ? null : CIFRepository.getStopNameFromStopData(stop_data, destination_crs) ?? destination_crs));
 
         resolve();
       });
@@ -64,10 +69,12 @@ export class ScheduleBuilder {
     });
   }
 
-  private createSchedule(row: ScheduleStopTimeRow, stops: StopTime[]): Schedule {
+  private createSchedule(row: ScheduleStopTimeRow, stops: StopTime[], destination_name : string | null): Schedule {
     this.maxId = Math.max(this.maxId, row.id);
 
     const mode = routeTypeIndex.hasOwnProperty(row.train_category) ? routeTypeIndex[row.train_category] : RouteType.Rail;
+
+    this.fillStopHeadsigns(row.atoc_code, stops, destination_name);
 
     return new Schedule(
       row.id,
@@ -152,6 +159,28 @@ export class ScheduleBuilder {
     let id = startId + 1;
     while (true) {
       yield id++;
+    }
+  }
+
+  public fillStopHeadsigns(atoc_code : string | null, stops : StopTime[], destination_name : string | null) : void {
+    if (stops.length === 0) return;
+
+    // Sutton (via Mitcham Junction) / Sutton (via Wimbledon)
+    if (stops[stops.length - 1].stop_id.substring(0, 3) === 'SUO' && atoc_code === 'TL') {
+      const index = stops.findIndex(stop => stop.stop_id.substring(0, 3) === 'STE');
+      const wimbledon = stops.find(stop => stop.stop_id.substring(0, 3) === 'WIM');
+      const mitcham = stops.find(stop => stop.stop_id.substring(0, 3) === 'MIJ');
+      if (index !== -1) {
+        for (let i = 0; i <= index; ++i) {
+          stops[i].stop_headsign = wimbledon ? 'Sutton (via Wimbledon)' : mitcham ? 'Sutton (via Mitcham Junction)' : null;
+        }
+      }
+    }
+
+    if (stops[0].stop_id.substring(0, 3) === 'SUO' && atoc_code === 'TL') {
+      const wimbledon = stops.find(stop => stop.stop_id.substring(0, 3) === 'WIM');
+      const mitcham = stops.find(stop => stop.stop_id.substring(0, 3) === 'MIJ');
+      stops[0].stop_headsign = wimbledon ? `${destination_name} (via Wimbledon)` : mitcham ? `${destination_name} (via Mitcham Junction)` : null;
     }
   }
 }
