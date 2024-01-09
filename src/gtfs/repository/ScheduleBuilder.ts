@@ -331,6 +331,33 @@ export class ScheduleBuilder {
         }
       }
     }
+
+    if (atoc_code === 'LO') {
+      if (destination_code === 'CLJ') {
+        for (const stop of stops) {
+          if (['HHY', 'CNN'].includes(stop.stop_id.substring(0, 3))) {
+            if (findCallingIndex('WIJ')) {
+              stop.stop_headsign = 'Clapham Junction (via Willesden Junction)';
+            }
+            if (findCallingIndex('SQE')) {
+              stop.stop_headsign = 'Clapham Junction (via Surrey Quays)';
+            }
+          }
+        }
+      }
+      if (destination_code === 'HHY') {
+        for (const stop of stops) {
+          if (stop.stop_id.substring(0, 3) === 'CLJ') {
+            if (findCallingIndex('WIJ')) {
+              stop.stop_headsign = 'Highbury & Islington (via Willesden Junction)';
+            }
+            if (findCallingIndex('SQE')) {
+              stop.stop_headsign = 'Highbury & Islington (via Surrey Quays)';
+            }
+          }
+        }
+      }
+    }
   }
 }
 
