@@ -143,13 +143,12 @@ export class Schedule implements OverlayRecord {
   public async toRoute(cifRepository : CIFRepository): Promise<Route> {
     const origin = await cifRepository.getStopName(this.origin) ?? this.origin;
     const destination = await cifRepository.getStopName(this.destination) ?? this.destination;
-    const routeLongName = `${origin} → ${destination}`;
-    const nameAndColour = this.getNameAndColour(routeLongName);
+    const nameAndColour = this.getNameAndColour(`${origin} → ${destination}`);
     return {
       route_id: this.id,
       agency_id: this.operator || "ZZ",
       route_short_name: nameAndColour.name,
-      route_long_name: routeLongName,
+      route_long_name: null,
       route_type: this.mode,
       route_text_color: null,
       route_color: nameAndColour.colour?.toString(16).padStart(6, '0') ?? null,
