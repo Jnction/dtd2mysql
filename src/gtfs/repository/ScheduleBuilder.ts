@@ -204,6 +204,16 @@ export class ScheduleBuilder {
       const mortlake = findCallingIndex('MTL');
       const barnes = findCallingIndex('BNS');
       const addlestone = findCallingIndex('ASN');
+
+      const effingham_junction = findCallingIndex('EFF');
+      const cobham = findCallingIndex('CSD');
+      const epsom = findCallingIndex('EPS');
+      const woking = findCallingIndex('WOK');
+
+      const winchester = findCallingIndex('WIN');
+      const guildford = findCallingIndex('GLD');
+      const basingstoke = findCallingIndex('BSK');
+
       for (let i = 0; i < stops.length; ++i) {
         const stop = stops[i];
         const stop_code = stop.stop_id.substring(0, 3);
@@ -287,6 +297,37 @@ export class ScheduleBuilder {
         }
         if (addlestone !== null && barnes !== null && addlestone < barnes && i < addlestone) {
           stop.stop_headsign ??= 'Barnes';
+        }
+
+        // Waterloo - Guildford services
+        if (
+            ['GLD', 'EFF'].includes(destination_code) && ['WAT', 'VXH', 'CLJ', 'EAD', 'WIM', 'RAY', 'NEM', 'BRS', 'SUR'].includes(stop_code)
+            || (stop_code === 'GLD' || effingham_junction !== null && i <= effingham_junction) && ['CLJ', 'WAT'].includes(destination_code)
+        ) {
+          if (woking !== null) {
+            stop.stop_headsign ??= `${destination_name} (via Woking)`;
+          }
+          if (cobham !== null) {
+            stop.stop_headsign ??= `${destination_name} (via Cobham)`;
+          }
+          if (epsom !== null) {
+            stop.stop_headsign ??= `${destination_name} (via Epsom)`;
+          }
+        }
+
+        // Waterloo - Portsmouth services
+        if (['FTN', 'PMS', 'PMH'].includes(destination_code)) {
+          if (guildford !== null && i < guildford && stop_code !== 'WPL') {
+            stop.stop_headsign ??= `${destination_name} (via Guildford)`;
+          }
+          // the NRE app shows via Basingstoke but the PIDS shows via Winchester
+          if (winchester !== null && (woking !== null && i < woking || ['WAT', 'CLJ'].includes(stop_code))) {
+            stop.stop_headsign ??= `${destination_name} (via Winchester)`;
+          }
+        }
+        if (['FTN', 'PMS', 'PMH'].includes(stop_code) && ['WOK', 'SUR', 'WIM', 'CLJ', 'WAT'].includes(destination_code)) {
+          if (guildford !== null) stop.stop_headsign ??= `${destination_name} (via Guildford)`;
+          if (winchester !== null) stop.stop_headsign ??= `${destination_name} (via Winchester)`;
         }
       }
     }
