@@ -5,7 +5,7 @@ export interface Route {
   route_id: RouteID;
   agency_id: AgencyID;
   route_short_name: string;
-  route_long_name: string;
+  route_long_name: string | null;
   route_type: RouteType;
   route_text_color: string | null;
   route_color: string | null;

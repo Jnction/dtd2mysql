@@ -1,4 +1,5 @@
 
+import {Pool} from 'mysql2';
 import {DatabaseConnection} from "../../database/DatabaseConnection";
 import {Transfer} from "../file/Transfer";
 import {CRS, Stop} from "../file/Stop";
@@ -18,7 +19,7 @@ export class CIFRepository {
 
   constructor(
     private readonly db: DatabaseConnection,
-    private readonly stream,
+    private readonly stream: Pool,
     public stationCoordinates: StationCoordinates
   ) {}
 
@@ -334,6 +335,22 @@ export class CIFRepository {
     return Promise.all([this.db.end(), this.stream.end()]);
   }
 
+  public async getStopName(code : CRS) : Promise<string | null> {
+    const stop_data = await this.getStops();
+    return CIFRepository.getStopNameFromStopData(stop_data, code);
+  }
+
+  public static getStopNameFromStopData(stop_data : Stop[], code : CRS) : string | null {
+    const longName = CIFRepository.getFullStopNameFromStopData(stop_data, code);
+    if (longName === null || longName.toUpperCase().includes('MAESTEG')) {
+      return longName;
+    }
+    return longName.replace(/ \(.*\)$/g, '');
+  }
+
+  public static getFullStopNameFromStopData(stop_data : Stop[], code : CRS) : string | null {
+    return stop_data.find(stop => stop.stop_code === code)?.stop_name ?? null;
+  }
 }
 
 export interface ScheduleStopTimeRow {

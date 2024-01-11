@@ -16,4 +16,8 @@ export interface Stop {
   platform_code: string;
 }
 
+export function getCrsFromStopId(stop_id : StopPlatform) : CRS {
+  return stop_id.substring(0, 3);
+}
+
 export type CRS = string;
