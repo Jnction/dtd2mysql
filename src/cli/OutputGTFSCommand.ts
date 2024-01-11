@@ -8,7 +8,7 @@ import {applyOverlays} from "../gtfs/command/ApplyOverlays";
 import {mergeSchedules} from "../gtfs/command/MergeSchedules";
 import {applyAssociations, AssociationIndex, ScheduleIndex} from "../gtfs/command/ApplyAssociations";
 import {createCalendar, ServiceIdIndex} from "../gtfs/command/CreateCalendar";
-import {ScheduleResults} from "../gtfs/repository/ScheduleBuilder";
+import {ScheduleBuilder, ScheduleResults} from "../gtfs/repository/ScheduleBuilder";
 import {GTFSOutput} from "../gtfs/output/GTFSOutput";
 import * as fs from "fs";
 import {addLateNightServices} from "../gtfs/command/AddLateNightServices";
@@ -44,7 +44,7 @@ export class OutputGTFSCommand implements CLICommand {
     const agencyP = this.copy(agencies, "agency.txt");
     const fixedLinksP = this.copy(this.repository.getFixedLinks(), "links.txt");
 
-    const schedules = this.getSchedules(await associationsP, await scheduleResultsP);
+    const schedules = await this.getSchedules(await associationsP, await scheduleResultsP);
     const [calendars, calendarDates, serviceIds] = createCalendar(schedules);
 
     const calendarP = this.copy(calendars, "calendar.txt");
@@ -123,11 +123,15 @@ export class OutputGTFSCommand implements CLICommand {
     ]);
   }
 
-  private getSchedules(associations: Association[], scheduleResults: ScheduleResults): Schedule[] {
+  private async getSchedules(associations: Association[], scheduleResults: ScheduleResults): Promise<Schedule[]> {
     const processedAssociations = <AssociationIndex>applyOverlays(associations);
     const processedSchedules = <ScheduleIndex>applyOverlays(scheduleResults.schedules, scheduleResults.idGenerator);
     const associatedSchedules = applyAssociations(processedSchedules, processedAssociations, scheduleResults.idGenerator);
+
     const mergedSchedules = <Schedule[]>mergeSchedules(associatedSchedules);
+    for (const schedule of mergedSchedules) {
+      await ScheduleBuilder.fillStopHeadsigns(schedule, this.repository);
+    }
     const schedules = addLateNightServices(mergedSchedules, scheduleResults.idGenerator);
 
     return schedules;

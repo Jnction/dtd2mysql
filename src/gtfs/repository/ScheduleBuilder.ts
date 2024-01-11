@@ -23,7 +23,7 @@ export class ScheduleBuilder {
   /**
    * Take a stream of ScheduleStopTimeRow, turn them into Schedule objects and add the result to the schedules
    */
-  public loadSchedules(results: Query, stop_data : Stop[]): Promise<void> {
+  public loadSchedules(results: Query): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       let stops: StopTime[] = [];
       let prevRow: ScheduleStopTimeRow;
@@ -32,10 +32,7 @@ export class ScheduleBuilder {
       results.on("result", (row: ScheduleStopTimeRow) => {
         if (prevRow && prevRow.id !== row.id) {
           const destination_crs = stops.length === 0 ? null : getCrsFromStopId(stops[stops.length - 1].stop_id);
-          this.schedules.push(this.createSchedule(prevRow,
-              stops,
-              destination_crs === null ? null : CIFRepository.getStopNameFromStopData(stop_data, destination_crs) ?? destination_crs
-          ));
+          this.schedules.push(this.createSchedule(prevRow, stops));
           stops = [];
 
           departureHour = row.public_arrival_time
@@ -61,7 +58,7 @@ export class ScheduleBuilder {
 
       results.on("end", () => {
         const destination_crs = stops.length === 0 ? null : getCrsFromStopId(stops[stops.length - 1].stop_id);
-        this.schedules.push(this.createSchedule(prevRow, stops, destination_crs === null ? null : CIFRepository.getStopNameFromStopData(stop_data, destination_crs) ?? destination_crs));
+        this.schedules.push(this.createSchedule(prevRow, stops));
 
         resolve();
       });
@@ -69,12 +66,10 @@ export class ScheduleBuilder {
     });
   }
 
-  private createSchedule(row: ScheduleStopTimeRow, stops: StopTime[], destination_name : string | null): Schedule {
+  private createSchedule(row: ScheduleStopTimeRow, stops: StopTime[]): Schedule {
     this.maxId = Math.max(this.maxId, row.id);
 
     const mode = routeTypeIndex.hasOwnProperty(row.train_category) ? routeTypeIndex[row.train_category] : RouteType.Rail;
-
-    this.fillStopHeadsigns(row.atoc_code, stops, destination_name);
 
     return new Schedule(
       row.id,
@@ -162,10 +157,13 @@ export class ScheduleBuilder {
     }
   }
 
-  public fillStopHeadsigns(atoc_code : string | null, stops : StopTime[], destination_name : string | null) : void {
+  public static async fillStopHeadsigns(schedule : Schedule, repository : CIFRepository) : Promise<void> {
+    const atoc_code = schedule.operator;
+    const stops = schedule.stopTimes;
     if (stops.length === 0) return;
 
     const destination_code = stops[stops.length - 1].stop_id.substring(0, 3);
+    const destination_name = await repository.getStopName(destination_code);
 
     for (let i = 0; i < stops.length; ++i) {
       const stop = stops[i];
