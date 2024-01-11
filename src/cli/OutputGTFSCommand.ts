@@ -129,9 +129,7 @@ export class OutputGTFSCommand implements CLICommand {
     const associatedSchedules = applyAssociations(processedSchedules, processedAssociations, scheduleResults.idGenerator);
 
     const mergedSchedules = <Schedule[]>mergeSchedules(associatedSchedules);
-    for (const schedule of mergedSchedules) {
-      await ScheduleBuilder.fillStopHeadsigns(schedule, this.repository);
-    }
+    await Promise.all(mergedSchedules.map(schedule => ScheduleBuilder.fillStopHeadsigns(schedule, this.repository)));
     const schedules = addLateNightServices(mergedSchedules, scheduleResults.idGenerator);
 
     return schedules;
