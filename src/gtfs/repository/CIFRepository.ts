@@ -197,7 +197,7 @@ export class CIFRepository {
           schedule.id AS id, train_uid, retail_train_id, runs_from, runs_to,
           monday, tuesday, wednesday, thursday, friday, saturday, sunday,
           crs_code, stp_indicator, public_arrival_time, public_departure_time,
-          IF(train_status="S", "SS", train_category) AS train_category,
+          IF(train_status='S', 'SS', train_category) AS train_category,
           scheduled_arrival_time AS scheduled_arrival_time,
           scheduled_departure_time AS scheduled_departure_time,
           platform, atoc_code, stop_time.id AS stop_id, activity, reservations, train_class
@@ -212,7 +212,7 @@ export class CIFRepository {
         AND runs_from < CURDATE() + INTERVAL 3 MONTH
         AND runs_to >= CURDATE() - INTERVAL 7 DAY
         AND scheduled_pass_time is null
-        AND (train_category IS NULL OR train_category NOT IN ('OL', 'SS', 'BS'))
+        AND (IF(train_status='S', 'SS', ifnull(train_category, '')) NOT IN ('OL', 'SS', 'BS'))
         ORDER BY stp_indicator DESC, id, stop_id
       `)),
       scheduleBuilder.loadSchedules(this.stream.query(`
@@ -227,7 +227,7 @@ export class CIFRepository {
         JOIN z_stop_time ON z_schedule.id = z_stop_time.z_schedule
         WHERE runs_from < CURDATE() + INTERVAL 3 MONTH
         AND runs_to >= CURDATE() - INTERVAL 7 DAY
-        AND (train_category IS NULL OR train_category NOT IN ('OL', 'SS', 'BS'))
+        AND (ifnull(train_category, '') NOT IN ('OL', 'SS', 'BS'))
         ORDER BY stop_id
       `))
     ]);
