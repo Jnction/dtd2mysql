@@ -43,7 +43,7 @@ export class CIFRepository {
   /**
    * Return all the stops with some configurable long/lat applied
    */
-  public async getStops(): Promise<Stop[]> {
+  public getStops(): Promise<Stop[]> {
     return this.stops;
   }
 
