@@ -89,7 +89,7 @@ export class OutputGTFSCommand implements CLICommand {
     const routes = {};
 
     function getRouteHash(route : Route) {
-      return `${route.agency_id}_${route.route_type}_${route.route_long_name}`
+      return `${route.agency_id}_${route.route_type}_${route.route_short_name}_${route.route_long_name}_${route.route_color}_${route.route_text_color}`;
     }
 
     for (const schedule of schedules) {
