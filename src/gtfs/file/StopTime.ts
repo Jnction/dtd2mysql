@@ -1,7 +1,7 @@
 export interface StopTime {
   trip_id: number;
-  arrival_time: string;
-  departure_time: string;
+  arrival_time: string | null;
+  departure_time: string | null;
   stop_id: StopPlatform;
   stop_sequence: number;
   stop_headsign: string | null;

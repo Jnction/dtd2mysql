@@ -9,14 +9,14 @@ export function addLateNightServices(schedules: Schedule[], idGenerator: IdGener
 
   for (const schedule of schedules) {
     result.push(schedule);
-    const departureHour = parseInt(schedule.stopTimes[0].departure_time.substr(0, 2), 10);
+    const departureHour = parseInt(schedule.stopTimes[0].departure_time!.substr(0, 2), 10);
 
     if (departureHour <= 1) {
       const newSchedule = schedule.clone(schedule.calendar.shiftBackward(), idGenerator.next().value);
 
       for (const stop of newSchedule.stopTimes) {
-        stop.departure_time = (parseInt(stop.departure_time.substr(0, 2), 10) + 24) + stop.departure_time.substr(2);
-        stop.arrival_time = (parseInt(stop.arrival_time.substr(0, 2), 10) + 24) + stop.arrival_time.substr(2);
+        stop.departure_time = stop.departure_time === null ? null : parseInt(stop.departure_time.substr(0, 2), 10) + 24 + stop.departure_time.substr(2);
+        stop.arrival_time = stop.arrival_time === null ? null : parseInt(stop.arrival_time.substr(0, 2), 10) + 24 + stop.arrival_time.substr(2);
       }
 
       result.push(newSchedule);

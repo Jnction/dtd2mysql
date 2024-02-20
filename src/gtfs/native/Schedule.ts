@@ -1,5 +1,6 @@
 import {AgencyID} from "../file/Agency";
 import {Route, RouteType} from "../file/Route";
+import {Shape} from '../file/Shape';
 import {CRS} from "../file/Stop";
 import {StopTime} from "../file/StopTime";
 import {Trip} from "../file/Trip";
@@ -66,9 +67,30 @@ export class Schedule implements OverlayRecord {
       trip_headsign: await cifRepository.getStopName(this.destination) ?? this.destination,
       trip_short_name: this.rsid?.substr(0, 6) ?? this.tuid,
       direction_id: 0,
+      shape_id: this.id,
       wheelchair_accessible: 1,
-      bikes_allowed: 0
+      bikes_allowed: 0,
     };
+  }
+
+  /**
+   * Convert to GTFS Shape Points
+   */
+  public async toShape(cifRepository : CIFRepository): Promise<Shape[]> {
+    const result : Shape[] = [];
+    let sequence = 0;
+    for (const stopTime of this.stopTimes) {
+      const stop = (await cifRepository.getStops()).find(stop => stop.stop_id === stopTime.stop_id);
+      if (stop !== undefined && stop.stop_lat !== null && stop.stop_lon !== null) {
+        result.push({
+          shape_id: this.id,
+          shape_pt_lat: stop.stop_lat,
+          shape_pt_lon: stop.stop_lon,
+          shape_pt_sequence: sequence++,
+        })
+      }
+    }
+    return result;
   }
 
   public getNameAndColour(routeLongName : string) : {name : string, colour : number | null} {

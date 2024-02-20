@@ -82,10 +82,11 @@ export class OutputGTFSCommand implements CLICommand {
    * trips.txt, stop_times.txt and routes.txt have interdependencies so they are written together
    */
   private async copyTrips(schedules: Schedule[], serviceIds: ServiceIdIndex): Promise<any> {
-    console.log("Writing trips.txt, stop_times.txt and routes.txt");
+    console.log("Writing trips.txt, stop_times.txt, routes.txt and shapes.txt");
     const trips = this.output.open(this.baseDir + "trips.txt");
     const stopTimes = this.output.open(this.baseDir + "stop_times.txt");
     const routeFile = this.output.open(this.baseDir + "routes.txt");
+    const shapes = this.output.open(this.baseDir + "shapes.txt");
     const routes = {};
 
     function getRouteHash(route : Route) {
@@ -105,7 +106,11 @@ export class OutputGTFSCommand implements CLICommand {
       const serviceId = serviceIds[schedule.calendar.id];
 
       trips.write(await schedule.toTrip(serviceId, routeId, this.repository));
-      schedule.stopTimes.forEach(r => stopTimes.write(r));
+      schedule.stopTimes.filter(r => r.departure_time !== null || r.arrival_time !== null /* filter out passes */)
+          .forEach(r => stopTimes.write(r));
+      for (const record of await schedule.toShape(this.repository)) {
+        shapes.write(record);
+      }
     }
 
     for (const route of Object.values(routes)) {
@@ -115,11 +120,13 @@ export class OutputGTFSCommand implements CLICommand {
     trips.end();
     stopTimes.end();
     routeFile.end();
+    shapes.end();
 
     return Promise.all([
       streamToPromise(trips),
       streamToPromise(stopTimes),
       streamToPromise(routeFile),
+      streamToPromise(shapes),
     ]);
   }
 

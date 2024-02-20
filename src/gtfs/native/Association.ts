@@ -182,13 +182,13 @@ function cloneStop(
     disableDropOff: boolean = false
 ): StopTime {
   const assocTime = moment.duration(assocStop && assocStop.arrival_time ? assocStop.arrival_time : "00:00");
-  const departureTime = stop.departure_time ? moment.duration(stop.departure_time) : undefined;
+  const departureTime = stop.departure_time ? moment.duration(stop.departure_time) : null;
 
   if (departureTime && departureTime.asSeconds() < assocTime.asSeconds()) {
     departureTime.add(1, "day");
   }
 
-  const arrivalTime = stop.arrival_time ? moment.duration(stop.arrival_time) : undefined;
+  const arrivalTime = stop.arrival_time ? moment.duration(stop.arrival_time) : null;
 
   if (arrivalTime && arrivalTime.asSeconds() < assocTime.asSeconds()) {
     arrivalTime.add(1, "day");
@@ -200,8 +200,8 @@ function cloneStop(
   }
 
   return Object.assign({}, stop, override, {
-    arrival_time: arrivalTime ? formatDuration(arrivalTime.asSeconds()) : undefined,
-    departure_time: departureTime ? formatDuration(departureTime.asSeconds()) : undefined,
+    arrival_time: arrivalTime ? formatDuration(arrivalTime.asSeconds()) : null,
+    departure_time: departureTime ? formatDuration(departureTime.asSeconds()) : null,
     stop_sequence: stopSequence,
     trip_id: tripId
   });
