@@ -206,14 +206,10 @@ export class CIFRepository {
         LEFT JOIN schedule_extra ON schedule.id = schedule_extra.schedule
         LEFT JOIN stop_time ON schedule.id = stop_time.schedule
         LEFT JOIN physical_station ps ON location = ps.tiploc_code
-        WHERE
-        (
-          stop_time.id IS NULL OR crs_code IS NOT NULL
-        )
         AND runs_from < CURDATE() + INTERVAL 3 MONTH
         AND runs_to >= CURDATE() - INTERVAL 7 DAY
         AND (IF(train_status='S', 'SS', ifnull(train_category, '')) NOT IN ('OL', 'SS', 'BS'))
-        AND ifnull(atoc_code, '') NOT IN ('LT', 'TW')
+        AND ifnull(atoc_code, '') NOT IN ('LT', 'TW', 'ES')
         ORDER BY stp_indicator DESC, id, stop_id
       `)),
       scheduleBuilder.loadSchedules(this.stream.query(`
@@ -229,7 +225,7 @@ export class CIFRepository {
         WHERE runs_from < CURDATE() + INTERVAL 3 MONTH
         AND runs_to >= CURDATE() - INTERVAL 7 DAY
         AND (ifnull(train_category, '') NOT IN ('OL', 'SS', 'BS'))
-        AND ifnull(atoc_code, '') NOT IN ('LT', 'TW')
+        AND ifnull(atoc_code, '') NOT IN ('LT', 'TW', 'ES')
         ORDER BY stop_id
       `))
     ]);
