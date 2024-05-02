@@ -90,6 +90,8 @@ export function stop(stopSequence: number, location: CRS, time: string): StopTim
     arrival_time: time,
     departure_time: time + ":30",
     stop_id: location,
+    stop_code: location,
+    tiploc_code: `${location}XXXX`,
     stop_sequence: stopSequence,
     stop_headsign: null,
     pickup_type: 0,

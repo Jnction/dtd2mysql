@@ -1,13 +1,13 @@
 
 import {Duration} from "../native/Duration";
-import {CRS} from "./Stop";
+import {AtcoCode} from "./Stop";
 
 /**
  * Custom format for links.txt
  */
 export interface FixedLink {
-  from_stop_id: CRS;
-  to_stop_id: CRS;
+  from_stop_id: AtcoCode;
+  to_stop_id: AtcoCode;
   mode: string;
   duration: Duration;
   start_time: string;

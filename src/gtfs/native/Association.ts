@@ -1,7 +1,7 @@
 
 import {Schedule} from "./Schedule";
 import {NO_DAYS, OverlapType, ScheduleCalendar} from "./ScheduleCalendar";
-import {CRS, Stop} from "../file/Stop";
+import {TIPLOC} from "../file/Stop";
 import {Duration, Moment} from "moment";
 import {IdGenerator, OverlayRecord, STP, TUID} from "./OverlayRecord";
 import {StopTime} from "../file/StopTime";
@@ -14,7 +14,7 @@ export class Association implements OverlayRecord {
     public readonly id: number,
     public readonly baseTUID: TUID,
     public readonly assocTUID: TUID,
-    public readonly assocLocation: CRS,
+    public readonly assocLocation: TIPLOC,
     public readonly dateIndicator: DateIndicator,
     public readonly assocType: AssociationType,
     public readonly calendar: ScheduleCalendar,

@@ -1,5 +1,5 @@
 import {Query} from 'mysql2';
-import {getCrsFromStopId, Stop} from '../file/Stop';
+import {CRS} from '../file/Stop';
 import {IdGenerator, STP} from "../native/OverlayRecord";
 import {Schedule} from "../native/Schedule";
 import {RouteType} from "../file/Route";
@@ -26,12 +26,11 @@ export class ScheduleBuilder {
   public loadSchedules(results: Query): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       let stops: StopTime[] = [];
-      let prevRow: ScheduleStopTimeRow;
+      let prevRow: ScheduleStopTimeRow | undefined;
       let departureHour = 4;
 
       results.on("result", (row: ScheduleStopTimeRow) => {
         if (prevRow && prevRow.id !== row.id) {
-          const destination_crs = stops.length === 0 ? null : getCrsFromStopId(stops[stops.length - 1].stop_id);
           this.schedules.push(this.createSchedule(prevRow, stops));
           stops = [];
 
@@ -57,8 +56,9 @@ export class ScheduleBuilder {
       });
 
       results.on("end", () => {
-        const destination_crs = stops.length === 0 ? null : getCrsFromStopId(stops[stops.length - 1].stop_id);
-        this.schedules.push(this.createSchedule(prevRow, stops));
+        if (prevRow !== undefined) {
+          this.schedules.push(this.createSchedule(prevRow, stops));
+        }
 
         resolve();
       });
@@ -111,7 +111,7 @@ export class ScheduleBuilder {
       departureTime = this.formatTime(row.scheduled_departure_time, departHour);
     }
 
-    const activities = row.activity.match(/.{1,2}/g) || [] as string[];
+    const activities = (row.activity ?? '').match(/.{1,2}/g) || [] as string[];
     const pickup = pickupActivities.find(a => activities.includes(a)) && !activities.includes(notAdvertised) ? 0 : 1;
     const coordinatedDropOff = coordinatedActivity.find(a => activities.includes(a)) ? 3 : 0;
     const dropOff = dropOffActivities.find(a => activities.includes(a)) ? 0 : 1;
@@ -120,7 +120,9 @@ export class ScheduleBuilder {
       trip_id: row.id,
       arrival_time: (arrivalTime || departureTime),
       departure_time: (departureTime || arrivalTime),
-      stop_id: `${row.crs_code}_${row.platform ?? ''}`,
+      stop_id: row.atco_code,
+      stop_code: row.crs_code,
+      tiploc_code: row.location,
       stop_sequence: stopId,
       stop_headsign: null,
       pickup_type: coordinatedDropOff || pickup,
@@ -162,12 +164,13 @@ export class ScheduleBuilder {
     const stops = schedule.stopTimes;
     if (stops.length === 0) return;
 
-    const destination_code = stops[stops.length - 1].stop_id.substring(0, 3);
-    const destination_name = await repository.getStopName(destination_code);
+    const destination_id = stops[stops.length - 1].stop_id;
+    const destination_name = await repository.getStopName(destination_id);
+    const stations = await repository.getStops();
 
     for (let i = 0; i < stops.length; ++i) {
       const stop = stops[i];
-      const stop_code = stop.stop_id.substring(0, 3);
+      const stop_code = stop.stop_code ?? '';
 
       /**
        * Find the index of first call in the stop list after the current stop
@@ -176,12 +179,12 @@ export class ScheduleBuilder {
        * @param stop_code
        * @param start
        */
-      function findCallingIndex(stop_code : string, start = i + 1) : number | null {
-        const result = stops.findIndex((stop, index) => stop.stop_id.substring(0, 3) === stop_code && index >= start);
+      function findCallingIndex(stop_code : CRS, start = i + 1) : number | null {
+        const result = stops.findIndex((stop, index) => stop.stop_code === stop_code && index >= start);
         return result === -1 ? null : result;
       }
       // Sutton (via Mitcham Junction) / Sutton (via Wimbledon)
-      if (stops[stops.length - 1].stop_id.substring(0, 3) === 'SUO' && atoc_code === 'TL') {
+      if (stop_code === 'SUO' && atoc_code === 'TL') {
         const index = findCallingIndex('STE');
         const wimbledon = findCallingIndex('WIM');
         const mitcham = findCallingIndex('MIJ');
@@ -190,7 +193,7 @@ export class ScheduleBuilder {
         }
       }
 
-      if (stops[0].stop_id.substring(0, 3) === 'SUO' && atoc_code === 'TL') {
+      if (stop_code === 'SUO' && atoc_code === 'TL') {
         const wimbledon = findCallingIndex('WIM');
         const mitcham = findCallingIndex('MIJ');
         stops[0].stop_headsign = wimbledon !== null ? `${destination_name} (via Wimbledon)` : mitcham !== null ? `${destination_name} (via Mitcham Junction)` : null;
@@ -248,7 +251,7 @@ export class ScheduleBuilder {
         }
 
         // Kingston loop between Kingston and Strawberry Hill
-        if (['KNG', 'HMW', 'TED', 'STW', 'SHP', 'UPH', 'SUU', 'KMP', 'HMP', 'FLW'].includes(stop_code) && ['WAT', 'CLJ'].includes(destination_code)) {
+        if (['KNG', 'HMW', 'TED', 'STW', 'SHP', 'UPH', 'SUU', 'KMP', 'HMP', 'FLW'].includes(stop_code) && ['WAT', 'CLJ'].includes(destination_id)) {
           if (richmond !== null) {
             stop.stop_headsign ??= `${destination_name} (via Richmond)`;
           }
@@ -283,7 +286,7 @@ export class ScheduleBuilder {
           stop.stop_headsign ??= 'Mortlake';
         }
 
-        if (stop_code === 'HOU' && ['WAT', 'CLJ'].includes(destination_code)) {
+        if (stop_code === 'HOU' && ['WAT', 'CLJ'].includes(destination_id)) {
           if (brentford !== null) {
             stop.stop_headsign ??= `${destination_name} (via Brentford)`;
           }
@@ -296,7 +299,7 @@ export class ScheduleBuilder {
         if (stop_code === 'WAT' && addlestone !== null) {
           stop.stop_headsign ??= 'Addlestone';
         }
-        if (['WYB', 'WOK'].includes(destination_code) && staines !== null && ['VXH', 'QRB', 'CLJ'].includes(stop_code)) {
+        if (['WYB', 'WOK'].includes(destination_id) && staines !== null && ['VXH', 'QRB', 'CLJ'].includes(stop_code)) {
           stop.stop_headsign ??= `${destination_name} (via Staines)`;
         }
         if (addlestone !== null && barnes !== null && addlestone < barnes) {
@@ -305,8 +308,8 @@ export class ScheduleBuilder {
 
         // Waterloo - Guildford services
         if (
-            ['GLD', 'EFF'].includes(destination_code) && ['WAT', 'VXH', 'CLJ', 'EAD', 'WIM', 'RAY', 'NEM', 'BRS', 'SUR'].includes(stop_code)
-            || (stop_code === 'GLD' || effingham_junction !== null && i <= effingham_junction) && ['CLJ', 'WAT'].includes(destination_code)
+            ['GLD', 'EFF'].includes(destination_id) && ['WAT', 'VXH', 'CLJ', 'EAD', 'WIM', 'RAY', 'NEM', 'BRS', 'SUR'].includes(stop_code)
+            || (stop_code === 'GLD' || effingham_junction !== null && i <= effingham_junction) && ['CLJ', 'WAT'].includes(destination_id)
         ) {
           if (woking !== null) {
             stop.stop_headsign ??= `${destination_name} (via Woking)`;
@@ -320,7 +323,7 @@ export class ScheduleBuilder {
         }
 
         // Waterloo - Portsmouth services
-        if (['FTN', 'PMS', 'PMH'].includes(destination_code)) {
+        if (['FTN', 'PMS', 'PMH'].includes(destination_id)) {
           if (guildford !== null && stop_code !== 'WPL') {
             stop.stop_headsign ??= `${destination_name} (via Guildford)`;
           }
@@ -329,7 +332,7 @@ export class ScheduleBuilder {
             stop.stop_headsign ??= `${destination_name} (via Winchester)`;
           }
         }
-        if (['FTN', 'PMS', 'PMH'].includes(stop_code) && ['WOK', 'SUR', 'WIM', 'CLJ', 'WAT'].includes(destination_code)) {
+        if (['FTN', 'PMS', 'PMH'].includes(stop_code) && ['WOK', 'SUR', 'WIM', 'CLJ', 'WAT'].includes(destination_id)) {
           if (guildford !== null) stop.stop_headsign ??= `${destination_name} (via Guildford)`;
           if (winchester !== null) stop.stop_headsign ??= `${destination_name} (via Winchester)`;
         }
@@ -352,7 +355,7 @@ export class ScheduleBuilder {
 
         // 3 routes between London Bridge and Dartford
         if (dartford !== null || stop_code === 'DFD') {
-          if (['CHX', 'LBG', 'CST', 'VIC', 'BFR'].includes(destination_code)) {
+          if (['CHX', 'LBG', 'CST', 'VIC', 'BFR'].includes(destination_id)) {
             if (sidcup !== null) {
               if (lewisham !== null) {
                 stop.stop_headsign ??= `${destination_name} (via Sidcup & Lewisham)`;
@@ -477,7 +480,7 @@ export class ScheduleBuilder {
         }
 
         // Woolwich line westbound via Greenwich or Lewisham
-        if ((charlton !== null || stop_code === 'CTN') && ['LBG', 'CST', 'CHX'].includes(destination_code)) {
+        if ((charlton !== null || stop_code === 'CTN') && ['LBG', 'CST', 'CHX'].includes(destination_id)) {
           const lewisham_after_charlton = findCallingIndex('LEW', (charlton ?? i) + 1);
           if (greenwich !== null && (charlton ?? i) < greenwich) {
             stop.stop_headsign ??= `${destination_name} (via Greenwich)`;
@@ -490,7 +493,7 @@ export class ScheduleBuilder {
         // Sidcup line or Hayes line via Lewisham
         const fork = hither_green ?? ladywell;
         const at_or_before_fork = fork !== null || ['HGR', 'LAD'].includes(stop_code);
-        if (['LBG', 'CST', 'CHX'].includes(destination_code)) {
+        if (['LBG', 'CST', 'CHX'].includes(destination_id)) {
           if (at_or_before_fork && findCallingIndex('LEW', fork ?? i) !== null) {
             stop.stop_headsign ??= `${destination_name} (via Lewisham)`;
           }
@@ -541,7 +544,7 @@ export class ScheduleBuilder {
       }
 
       if (atoc_code === 'LO') {
-        if (destination_code === 'CLJ') {
+        if (destination_id === 'CLJ') {
           for (const stop of stops) {
             if (['HHY', 'CNN'].includes(stop.stop_id.substring(0, 3))) {
               if (findCallingIndex('WIJ')) {
@@ -553,7 +556,7 @@ export class ScheduleBuilder {
             }
           }
         }
-        if (destination_code === 'HHY') {
+        if (destination_id === 'HHY') {
           for (const stop of stops) {
             if (stop.stop_id.substring(0, 3) === 'CLJ') {
               if (findCallingIndex('WIJ')) {

@@ -1,12 +1,13 @@
-import {AgencyID} from "../file/Agency";
-import {Route, RouteType} from "../file/Route";
-import {Shape} from '../file/Shape';
-import {CRS} from "../file/Stop";
+
 import {StopTime} from "../file/StopTime";
-import {Trip} from "../file/Trip";
-import {CIFRepository} from '../repository/CIFRepository';
-import {OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
 import {ScheduleCalendar} from "./ScheduleCalendar";
+import {Trip} from "../file/Trip";
+import {Route, RouteType} from "../file/Route";
+import {AgencyID} from "../file/Agency";
+import {AtcoCode, TIPLOC} from "../file/Stop";
+import {Shape} from '../file/Shape';
+import {OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
+import {CIFRepository} from '../repository/CIFRepository';
 
 /**
  * A CIF schedule (BS record)
@@ -26,12 +27,12 @@ export class Schedule implements OverlayRecord {
     public readonly reservationPossible: boolean
   ) {}
 
-  public get origin(): CRS {
-    return this.stopTimes[0].stop_id.substr(0, 3);
+  public get origin(): AtcoCode {
+    return this.stopTimes[0].stop_id;
   }
 
-  public get destination(): CRS {
-    return this.stopTimes[this.stopTimes.length - 1].stop_id.substr(0, 3);
+  public get destination(): AtcoCode {
+    return this.stopTimes[this.stopTimes.length - 1].stop_id;
   }
 
   public get hash(): string {
@@ -199,16 +200,15 @@ export class Schedule implements OverlayRecord {
     return this.reservationPossible ? "Reservation possible" : "Reservation not possible";
   }
 
-  public before(location: CRS): StopTime[] {
-    return this.stopTimes.slice(0, this.stopTimes.findIndex(s => s.stop_id.substr(0, 3) === location));
+  public before(location: TIPLOC): StopTime[] {
+    return this.stopTimes.slice(0, this.stopTimes.findIndex(s => s.tiploc_code === location));
   }
 
-  public after(location: CRS): StopTime[] {
-    return this.stopTimes.slice(this.stopTimes.findIndex(s => s.stop_id.substr(0, 3) === location) + 1);
+  public after(location: TIPLOC): StopTime[] {
+    return this.stopTimes.slice(this.stopTimes.findIndex(s => s.tiploc_code === location) + 1);
   }
 
-  public stopAt(location: CRS): StopTime | undefined {
-    return <StopTime>this.stopTimes.find(s => s.stop_id.substr(0, 3) === location);
+  public stopAt(location: TIPLOC): StopTime | undefined {
+    return <StopTime>this.stopTimes.find(s => s.tiploc_code === location);
   }
 }
-
