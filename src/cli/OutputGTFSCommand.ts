@@ -1,3 +1,5 @@
+import * as moment from 'moment';
+import {FeedInfo} from '../gtfs/file/FeedInfo';
 import {Route} from '../gtfs/file/Route';
 import {CLICommand} from "./CLICommand";
 import {CIFRepository} from "../gtfs/repository/CIFRepository";
@@ -38,6 +40,14 @@ export class OutputGTFSCommand implements CLICommand {
 
     const associationsP = this.repository.getAssociations();
     const scheduleResultsP = this.repository.getSchedules();
+    const now = new Date();
+    const infoP = this.copy([<FeedInfo>{
+      feed_publisher_name: 'Aubin',
+      feed_publisher_url: 'https://aubin.app',
+      feed_lang: 'en',
+      feed_start_date: moment(new Date(now.setDate(now.getDate() + CIFRepository.DATE_OFFSET_START))).format('YYYYMMDD'),
+      feed_end_date: moment(new Date(now.setDate(now.getDate() + CIFRepository.DATE_OFFSET_END))).format('YYYYMMDD'),
+    }], "feed_info.txt");
     const transfersP = this.copy(this.repository.getTransfers(), "transfers.txt");
     const stopsP = this.copy(this.repository.getStops(), "stops.txt");
     const agencyP = this.copy(agencies, "agency.txt");
@@ -51,6 +61,7 @@ export class OutputGTFSCommand implements CLICommand {
     const tripsP = this.copyTrips(schedules, serviceIds);
 
     await Promise.all([
+      infoP,
       agencyP,
       transfersP,
       stopsP,

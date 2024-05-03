@@ -16,6 +16,8 @@ import {FixedLink} from "../file/FixedLink";
  * Provide access to the CIF/TTIS data in a vaguely GTFS-ish shape.
  */
 export class CIFRepository {
+  static readonly DATE_OFFSET_START = -7;
+  static readonly DATE_OFFSET_END = 91;
 
   constructor(
     private readonly db: DatabaseConnection,
@@ -175,8 +177,8 @@ export class CIFRepository {
         FROM schedule
         LEFT JOIN schedule_extra ON schedule.id = schedule_extra.schedule
         LEFT JOIN (stop_time JOIN physical_station ps ON location = ps.tiploc_code) ON schedule.id = stop_time.schedule
-        WHERE runs_from < CURDATE() + INTERVAL 3 MONTH
-        AND runs_to >= CURDATE() - INTERVAL 7 DAY
+        WHERE runs_from < CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_END} DAY
+        AND runs_to >= CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_START} DAY
         AND (IF(train_status='S', 'SS', ifnull(train_category, '')) NOT IN ('OL', 'SS', 'BS'))
         AND ifnull(atoc_code, '') NOT IN ('LT', 'TW', 'ES')
         ORDER BY stp_indicator DESC, id, stop_id
@@ -196,8 +198,8 @@ export class CIFRepository {
         monday, tuesday, wednesday, thursday, friday, saturday, sunday,
         start_date, end_date, stp_indicator
       FROM association a
-      WHERE start_date < CURDATE() + INTERVAL 3 MONTH
-      AND end_date >= CURDATE() - INTERVAL 7 DAY
+      WHERE start_date < CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_END} DAY
+      AND end_date >= CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_START} DAY
       ORDER BY stp_indicator DESC, id
     `);
 
