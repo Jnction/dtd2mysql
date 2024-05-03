@@ -3,7 +3,6 @@ import {Platform} from './StopTime';
 export interface Stop {
   stop_id: AtcoCode;
   stop_code: CRS;
-  tiploc_code: TIPLOC;
   stop_name: string;
   stop_desc: string;
   stop_lat: number;

@@ -77,7 +77,6 @@ export class CIFRepository {
       SELECT -- select all the physical stations
         CONCAT('910G', tiploc_code) AS stop_id, -- using the ATCO code as the stop ID
         crs_code AS stop_code, -- and the main CRS code as the public facing code
-        tiploc_code,
         station_name AS stop_name,
         NULL AS stop_desc,
         0 AS stop_lat,
@@ -95,7 +94,6 @@ export class CIFRepository {
       UNION SELECT -- and select all the platforms where scheduled services call at
         CONCAT('9100', physical_station.tiploc_code, IFNULL(platform, '')) AS stop_id, -- using the ATCO code with the platform number as the stop ID
         crs_reference_code AS stop_code, -- and the minor CRS code as the public facing code
-        physical_station.tiploc_code,
         IF(ISNULL(platform), station_name, CONCAT(station_name, ' (Platform ', platform, ')')) AS stop_name,
         NULL AS stop_desc,
         0 AS stop_lat,
