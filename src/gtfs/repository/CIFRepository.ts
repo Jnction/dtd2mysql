@@ -75,14 +75,12 @@ export class CIFRepository {
   and one entry for each platform as a GTFS stop identified by its minor CRS code and the platform number, associated to the station with the main CRS code.
    */
   private stops : Promise<Stop[]> = (async () => {
-    const [results] = await this.db.query<Stop & {easting : number, northing : number}>(`
+    const [results] = await this.db.query<Omit<Stop, 'stop_lat' | 'stop_lon'> & {easting : number, northing : number}>(`
       SELECT -- select all the physical stations
         CONCAT('910G', tiploc_code) AS stop_id, -- using the ATCO code as the stop ID
         crs_code AS stop_code, -- and the main CRS code as the public facing code
         station_name AS stop_name,
         NULL AS stop_desc,
-        0 AS stop_lat,
-        0 AS stop_lon,
         NULL AS zone_id,
         NULL AS stop_url,
         1 AS location_type,
@@ -98,8 +96,6 @@ export class CIFRepository {
         crs_reference_code AS stop_code, -- and the minor CRS code as the public facing code
         IF(ISNULL(platform), station_name, CONCAT(station_name, ' (Platform ', platform, ')')) AS stop_name,
         NULL AS stop_desc,
-        0 AS stop_lat,
-        0 AS stop_lon,
         NULL AS zone_id,
         NULL AS stop_url,
         0 AS location_type,
@@ -117,12 +113,9 @@ export class CIFRepository {
     `);
 
     // overlay the long and latitude values from configuration
-    return results.map(stop => {
-      const [stop_lon, stop_lat] = proj4('EPSG:27700', 'EPSG:4326', [(stop.easting - 10000) * 100, (stop.northing - 60000) * 100]);
-      stop.stop_lon = stop_lon;
-      stop.stop_lat = stop_lat;
-      delete stop.easting;
-      delete stop.northing;
+    return results.map(row => {
+      const [stop_lon, stop_lat] = proj4('EPSG:27700', 'EPSG:4326', [(row.easting - 10000) * 100, (row.northing - 60000) * 100]);
+      const {easting, northing, ...stop} = {...row, stop_lon, stop_lat};
       const station_data = this.stationCoordinates[stop.stop_code] ?? this.stationCoordinates[stop.parent_station];
       if (stop.location_type === 0) {
         const platform_code = stop.platform_code;
