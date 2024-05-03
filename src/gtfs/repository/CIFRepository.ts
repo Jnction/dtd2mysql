@@ -31,10 +31,10 @@ export class CIFRepository {
    * Return the interchange time between each station
    */
   public async getTransfers(): Promise<Transfer[]> {
-    const [results] = await this.db.query<Transfer[]>(`
+    const [results] = await this.db.query<Transfer>(`
       SELECT
         CONCAT('910G', tiploc_code) AS from_stop_id,
-        CONCAT('910G', tiploc_code) AS to_stop_id, 
+        CONCAT('910G', tiploc_code) AS to_stop_id,
         2 AS transfer_type, 
         minimum_change_time * 60 AS min_transfer_time 
       FROM physical_station WHERE cate_interchange_status <> 9
@@ -162,7 +162,7 @@ export class CIFRepository {
    */
   public async getSchedules(): Promise<ScheduleResults> {
     const scheduleBuilder = new ScheduleBuilder();
-    const [[lastSchedule]] = await this.db.query("SELECT id FROM schedule ORDER BY id desc LIMIT 1");
+    const [[lastSchedule]] = await this.db.query<{id: number}>("SELECT id FROM schedule ORDER BY id desc LIMIT 1");
 
     await Promise.all([
       scheduleBuilder.loadSchedules(this.stream.query(`
@@ -192,7 +192,7 @@ export class CIFRepository {
    * Get associations
    */
   public async getAssociations(): Promise<Association[]> {
-    const [results] : [AssociationRow[]] = await this.db.query<AssociationRow[]>(`
+    const [results] = await this.db.query<AssociationRow>(`
       SELECT 
         a.id AS id, base_uid, assoc_uid, assoc_location, assoc_date_ind, assoc_cat,
         monday, tuesday, wednesday, thursday, friday, saturday, sunday,
@@ -230,7 +230,7 @@ export class CIFRepository {
    */
   public async getFixedLinks(): Promise<FixedLink[]> {
     // use the additional fixed links if possible and fill the missing data with fixed_links
-    const [rows] : [FixedLinkRow[]] = await this.db.query<FixedLinkRow>(`
+    const [rows] = await this.db.query<FixedLinkRow>(`
       SELECT
         mode, duration * 60 as duration, origin, destination,
         start_time, end_time, start_date, end_date,
