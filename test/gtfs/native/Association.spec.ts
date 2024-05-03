@@ -4,7 +4,7 @@ import {Days, ScheduleCalendar} from "../../../src/gtfs/native/ScheduleCalendar"
 import {STP} from "../../../src/gtfs/native/OverlayRecord";
 import {StopTime} from "../../../src/gtfs/file/StopTime";
 import {Schedule} from "../../../src/gtfs/native/Schedule";
-import {CRS} from "../../../src/gtfs/file/Stop";
+import {CRS, TIPLOC} from "../../../src/gtfs/file/Stop";
 import {Association, AssociationType, DateIndicator} from "../../../src/gtfs/native/Association";
 import {schedule} from "../command/MergeSchedules.spec";
 
@@ -23,7 +23,7 @@ describe("Association", () => {
       stop(2, "DOV", "13:00"),
     ]);
 
-    const [result] = association(base, assoc, AssociationType.Split, "ASH").apply(base, assoc, idGenerator());
+    const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX").apply(base, assoc, idGenerator());
 
     chai.expect(result.tuid).to.equal("A_B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("TON");
@@ -58,7 +58,7 @@ describe("Association", () => {
       stop(7, "B", "13:40", 2),
     ]);
 
-    const [result] = association(base, assoc, AssociationType.Split, "ASH").apply(base, assoc, idGenerator());
+    const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX").apply(base, assoc, idGenerator());
 
     chai.expect(result.tuid).to.equal("A_B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("PDW");
@@ -91,7 +91,7 @@ describe("Association", () => {
       stop(2, "DOV", "01:00"),
     ]);
 
-    const [result] = association(base, assoc, AssociationType.Split, "ASH", DateIndicator.Next).apply(base, assoc, idGenerator());
+    const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX", DateIndicator.Next).apply(base, assoc, idGenerator());
 
     chai.expect(result.tuid).to.equal("A_B");
     chai.expect(result.calendar.runsFrom.isSame("2017-07-10")).to.be.true;
@@ -122,7 +122,7 @@ describe("Association", () => {
       stop(2, "DOV", "13:00"),
     ]);
 
-    const [result] = association(base, assoc, AssociationType.Split, "ASH").apply(base, assoc, idGenerator());
+    const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX").apply(base, assoc, idGenerator());
 
     chai.expect(result.tuid).to.equal("A_B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("TON");
@@ -151,7 +151,7 @@ describe("Association", () => {
       stop(3, "ASH", "11:55"),
     ]);
 
-    const [result] = association(base, assoc, AssociationType.Join, "ASH").apply(base, assoc, idGenerator());
+    const [result] = association(base, assoc, AssociationType.Join, "ASHXXXX").apply(base, assoc, idGenerator());
 
     chai.expect(result.tuid).to.equal("B_A");
     chai.expect(result.stopTimes[0].stop_id).to.equal("DOV");
@@ -188,7 +188,7 @@ describe("Association", () => {
       stop(9, "ASH", "11:55", 2),
     ]);
 
-    const [result] = association(base, assoc, AssociationType.Join, "ASH").apply(base, assoc, idGenerator());
+    const [result] = association(base, assoc, AssociationType.Join, "ASHXXXX").apply(base, assoc, idGenerator());
 
     chai.expect(result.tuid).to.equal("B_A");
     chai.expect(result.stopTimes[0].stop_id).to.equal("A");
@@ -228,7 +228,7 @@ describe("Association", () => {
       stop(3, "ASH", "11:55"),
     ]);
 
-    const [result] = association(base, assoc, AssociationType.Join, "ASH").apply(base, assoc, idGenerator());
+    const [result] = association(base, assoc, AssociationType.Join, "ASHXXXX").apply(base, assoc, idGenerator());
 
     chai.expect(result.tuid).to.equal("B_A");
     chai.expect(result.stopTimes[0].stop_id).to.equal("DOV");
@@ -265,7 +265,7 @@ describe("Association", () => {
       1,
       base.tuid,
       assoc.tuid,
-      "ASH",
+      "ASHXXXX",
       DateIndicator.Same,
       AssociationType.Split,
       new ScheduleCalendar(moment("2017-07-20"), moment("2017-08-16"), ALL_DAYS, excludeDays),
@@ -315,7 +315,7 @@ function stop(stopSequence: number, location: CRS, time: string, tripId: number 
 function association(base: Schedule,
                      assoc: Schedule,
                      type: AssociationType,
-                     location: CRS,
+                     location: TIPLOC,
                      dateIndicator: DateIndicator = DateIndicator.Same): Association {
   return new Association(
     1,
