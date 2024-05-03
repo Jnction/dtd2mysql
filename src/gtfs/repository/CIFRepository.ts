@@ -1,5 +1,6 @@
 
 import {Pool} from 'mysql2';
+import * as proj4 from 'proj4';
 import {DatabaseConnection} from "../../database/DatabaseConnection";
 import {Transfer} from "../file/Transfer";
 import {AtcoCode, CRS, Stop, TIPLOC} from "../file/Stop";
@@ -20,7 +21,9 @@ export class CIFRepository {
     private readonly db: DatabaseConnection,
     private readonly stream: Pool,
     public stationCoordinates: StationCoordinates
-  ) {}
+  ) {
+    proj4.defs('EPSG:27700', '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs');
+  }
 
   /**
    * Return the interchange time between each station
@@ -70,7 +73,7 @@ export class CIFRepository {
   and one entry for each platform as a GTFS stop identified by its minor CRS code and the platform number, associated to the station with the main CRS code.
    */
   private stops : Promise<Stop[]> = (async () => {
-    const [results] : [Stop[]] = await this.db.query<Stop[]>(`
+    const [results] = await this.db.query<Stop & {easting : number, northing : number}>(`
       SELECT -- select all the physical stations
         CONCAT('910G', tiploc_code) AS stop_id, -- using the ATCO code as the stop ID
         crs_code AS stop_code, -- and the main CRS code as the public facing code
@@ -85,7 +88,9 @@ export class CIFRepository {
         NULL AS parent_station,
         IF(POSITION('(CIE' IN station_name), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
         0 AS wheelchair_boarding,
-        NULL AS platform_code
+        NULL AS platform_code,
+        easting,
+        northing
       FROM physical_station WHERE crs_code IS NOT NULL AND cate_interchange_status <> 9 -- from the main part of the station
       UNION SELECT -- and select all the platforms where scheduled services call at
         CONCAT('9100', physical_station.tiploc_code, IFNULL(platform, '')) AS stop_id, -- using the ATCO code with the platform number as the stop ID
@@ -101,7 +106,9 @@ export class CIFRepository {
         (select CONCAT('910G', tiploc_code) from physical_station parent where crs_code = physical_station.crs_code and cate_interchange_status <> 9) AS parent_station,
         IF(POSITION('(CIE' IN station_name), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
         0 AS wheelchair_boarding,
-        platform AS platform_code
+        platform AS platform_code,
+        easting,
+        northing
       FROM physical_station
         INNER JOIN (
           SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
@@ -111,6 +118,11 @@ export class CIFRepository {
 
     // overlay the long and latitude values from configuration
     return results.map(stop => {
+      const [stop_lon, stop_lat] = proj4('EPSG:27700', 'EPSG:4326', [(stop.easting - 10000) * 100, (stop.northing - 60000) * 100]);
+      stop.stop_lon = stop_lon;
+      stop.stop_lat = stop_lat;
+      delete stop.easting;
+      delete stop.northing;
       const station_data = this.stationCoordinates[stop.stop_code] ?? this.stationCoordinates[stop.parent_station];
       if (stop.location_type === 0) {
         const platform_code = stop.platform_code;
