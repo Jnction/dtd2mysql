@@ -81,7 +81,7 @@ export class Schedule implements OverlayRecord {
     const result : Shape[] = [];
     let sequence = 0;
     for (const stopTime of this.stopTimes) {
-      const stop = (await cifRepository.getStops()).find(stop => stop.stop_id === stopTime.stop_id);
+      const stop = await cifRepository.findStopById(stopTime.stop_id);
       if (stop !== undefined && stop.stop_lat !== null && stop.stop_lon !== null) {
         result.push({
           shape_id: this.id,

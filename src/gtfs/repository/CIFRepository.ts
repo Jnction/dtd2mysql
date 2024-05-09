@@ -51,6 +51,17 @@ export class CIFRepository {
     return this.stops;
   }
 
+  private stopById : Map<string, Stop> | undefined;
+  public async findStopById(stopId: string) {
+    if (this.stopById === undefined) {
+      this.stopById = new Map<string, Stop>();
+      for (const stop of await this.getStops()) {
+        this.stopById.set(stop.stop_id, stop);
+      }
+    }
+    return this.stopById!.get(stopId);
+  }
+
   /*
   Every passenger station in the National Rail network has a CRS code, however, some multi-part stations
   may have additional minor CRS code specifying a part of it. For example,
