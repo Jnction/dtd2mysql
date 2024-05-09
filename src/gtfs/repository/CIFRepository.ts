@@ -296,8 +296,11 @@ export class CIFRepository {
   }
 
   public async getStopName(stop_id : AtcoCode) : Promise<string | null> {
-    const stop_data = await this.getStops();
-    return CIFRepository.getStopNameFromStopData(stop_data, stop_id);
+    const longName = await this.getFullStopName(stop_id);
+    if (longName === null || longName.toUpperCase().includes('MAESTEG')) {
+      return longName;
+    }
+    return longName.replace(/ \(.*\)$/g, '');
   }
 
   public async getStopId(code : CRS) : Promise<AtcoCode | null> {
@@ -308,16 +311,8 @@ export class CIFRepository {
     return result === undefined ? null : result.stop_id;
   }
 
-  public static getStopNameFromStopData(stop_data : Stop[], stop_id : AtcoCode) : string | null {
-    const longName = CIFRepository.getFullStopNameFromStopData(stop_data, stop_id);
-    if (longName === null || longName.toUpperCase().includes('MAESTEG')) {
-      return longName;
-    }
-    return longName.replace(/ \(.*\)$/g, '');
-  }
-
-  public static getFullStopNameFromStopData(stop_data : Stop[], stop_id : AtcoCode) : string | null {
-    return stop_data.find(stop => stop.stop_id === stop_id)?.stop_name ?? null;
+  public async getFullStopName(stop_id : AtcoCode) : Promise<string | null> {
+    return (await this.findStopById(stop_id))?.stop_name ?? null;
   }
 }
 
