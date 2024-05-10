@@ -8,13 +8,17 @@ Although both the timetable and fares feed are open data you will need to obtain
 
 At the moment only MySQL compatible databases are supported but it could be extended to support other data stores. PRs are very welcome.
 
-## Download / Install
+## Changes to upstream
 
-You don't have to install it globally but it makes it easier if you are not going to use it as part of another project. The `-g` option usually requires `sudo`. It is not necessary to git clone this repository unless you would like to contribute.
+Pull requests are made to [upstream](https://github.com/planarnetwork/dtd2mysql) if applicable, however, the following are the main improvements
+which differ significantly from upstream, all related to GTFS generation:
 
-```
-npm install -g dtd2mysql
-```
+* `stops.txt` includes all stations and platforms, with ATCO code as the ID. This helps combining with other national GTFS datasets of other transport modes.
+* The scheduled platform allocation for each service is included
+* Adds the ability to supply alternative station data from an external JSON file, including coordinates and wheelchair accessibility.
+* The RSID is used for trip names
+* Names such as "Stansted Express", "West Midlands Railway", etc., are used for route names
+* Headsigns are filled by logic in order to replicate the departure boards in real life
 
 ## Fares 
 
