@@ -127,7 +127,9 @@ export class CIFRepository {
     return results.map(row => {
       const [stop_lon, stop_lat] = proj4('EPSG:27700', 'EPSG:4326', [(row.easting - 10000) * 100, (row.northing - 60000) * 100]);
       const {easting, northing, ...stop} = {...row, stop_lon, stop_lat};
-      const station_data = this.stationCoordinates[stop.stop_code] ?? this.stationCoordinates[stop.parent_station];
+      const station_data =
+          this.stationCoordinates[stop.stop_code]
+          ?? this.stationCoordinates[results.find(parent_stop => parent_stop.stop_id === stop.parent_station)?.stop_code ?? ''];
       if (stop.location_type === 0) {
         const platform_code = stop.platform_code;
         if (platform_code) {

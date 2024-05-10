@@ -10,7 +10,7 @@ export interface Stop {
   zone_id: number;
   stop_url: string;
   location_type: 0 | 1;
-  parent_station: CRS;
+  parent_station: AtcoCode;
   stop_timezone: string;
   wheelchair_boarding: 0 | 1 | 2;
   platform_code: Platform | null;
