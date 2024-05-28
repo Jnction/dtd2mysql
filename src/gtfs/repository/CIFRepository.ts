@@ -1,14 +1,14 @@
 
 import {Pool} from 'mysql2';
+import * as proj4 from 'proj4';
 import {DatabaseConnection} from "../../database/DatabaseConnection";
 import {Transfer} from "../file/Transfer";
-import {CRS, Stop} from "../file/Stop";
+import {AtcoCode, CRS, Stop, TIPLOC} from "../file/Stop";
 import moment = require("moment");
 import {ScheduleCalendar} from "../native/ScheduleCalendar";
 import {Association, AssociationType, DateIndicator} from "../native/Association";
 import {RSID, STP, TUID} from "../native/OverlayRecord";
 import {ScheduleBuilder, ScheduleResults} from "./ScheduleBuilder";
-import {RouteType} from "../file/Route";
 import {Duration} from "../native/Duration";
 import {FixedLink} from "../file/FixedLink";
 
@@ -16,24 +16,28 @@ import {FixedLink} from "../file/FixedLink";
  * Provide access to the CIF/TTIS data in a vaguely GTFS-ish shape.
  */
 export class CIFRepository {
+  static readonly DATE_OFFSET_START = -7;
+  static readonly DATE_OFFSET_END = 91;
 
   constructor(
     private readonly db: DatabaseConnection,
     private readonly stream: Pool,
     public stationCoordinates: StationCoordinates
-  ) {}
+  ) {
+    proj4.defs('EPSG:27700', '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs');
+  }
 
   /**
    * Return the interchange time between each station
    */
   public async getTransfers(): Promise<Transfer[]> {
-    const [results] = await this.db.query<Transfer[]>(`
-      SELECT 
-        crs_code AS from_stop_id, 
-        crs_code AS to_stop_id, 
+    const [results] = await this.db.query<Transfer>(`
+      SELECT
+        CONCAT('910G', tiploc_code) AS from_stop_id,
+        CONCAT('910G', tiploc_code) AS to_stop_id,
         2 AS transfer_type, 
         minimum_change_time * 60 AS min_transfer_time 
-      FROM physical_station WHERE cate_interchange_status IS NOT NULL
+      FROM physical_station WHERE cate_interchange_status <> 9
       GROUP BY crs_code
     `);
 
@@ -45,6 +49,17 @@ export class CIFRepository {
    */
   public getStops(): Promise<Stop[]> {
     return this.stops;
+  }
+
+  private stopById : Map<string, Stop> | undefined;
+  public async findStopById(stopId: string) {
+    if (this.stopById === undefined) {
+      this.stopById = new Map<string, Stop>();
+      for (const stop of await this.getStops()) {
+        this.stopById.set(stop.stop_id, stop);
+      }
+    }
+    return this.stopById!.get(stopId);
   }
 
   /*
@@ -71,91 +86,54 @@ export class CIFRepository {
   and one entry for each platform as a GTFS stop identified by its minor CRS code and the platform number, associated to the station with the main CRS code.
    */
   private stops : Promise<Stop[]> = (async () => {
-    const [results] : [Stop[]] = await this.db.query<Stop[]>(`
+    const [results] = await this.db.query<Omit<Stop, 'stop_lat' | 'stop_lon'> & {easting : number, northing : number}>(`
       SELECT -- select all the physical stations
-        crs_code AS stop_id, -- using the main CRS code as both the id
-        crs_code AS stop_code, -- and the public facing code
-        MIN(station_name) AS stop_name,
+        CONCAT('910G', tiploc_code) AS stop_id, -- using the ATCO code as the stop ID
+        crs_code AS stop_code, -- and the main CRS code as the public facing code
+        station_name AS stop_name,
         NULL AS stop_desc,
-        0 AS stop_lat,
-        0 AS stop_lon,
         NULL AS zone_id,
         NULL AS stop_url,
         1 AS location_type,
         NULL AS parent_station,
-        IF(POSITION('(CIE' IN MIN(station_name)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
+        IF(POSITION('(CIE' IN station_name), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
         0 AS wheelchair_boarding,
-        NULL AS platform_code
+        NULL AS platform_code,
+        easting,
+        northing
       FROM physical_station WHERE crs_code IS NOT NULL AND cate_interchange_status <> 9 -- from the main part of the station
-      GROUP BY crs_code
-      UNION SELECT
-        crs_code AS stop_id,
-        crs_code AS stop_code,
-        min(tps_description) AS stop_name,
-        NULL AS stop_desc,
-        0 AS stop_lat,
-        0 AS stop_lon,
-        NULL AS zone_id,
-        NULL AS stop_url,
-        1 AS location_type,
-        NULL AS parent_station,
-        IF(POSITION('(CIE' IN MIN(tps_description)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
-        0 AS wheelchair_boarding,
-        NULL AS platform_code
-      FROM tiploc 
-      WHERE crs_code IS NOT NULL AND crs_code NOT IN (SELECT crs_reference_code FROM physical_station)
-      GROUP BY crs_code
       UNION SELECT -- and select all the platforms where scheduled services call at
-        CONCAT(physical_station.crs_code, '_', IFNULL(platform, '')) AS stop_id, -- using the CRS code and the platform number as the id
+        CONCAT('9100', physical_station.tiploc_code, IFNULL(platform, '')) AS stop_id, -- using the ATCO code with the platform number as the stop ID
         crs_reference_code AS stop_code, -- and the minor CRS code as the public facing code
-        IF(ISNULL(platform), MIN(station_name), CONCAT(MIN(station_name), ' (platform ', platform, ')')) AS stop_name,
+        IF(ISNULL(platform), station_name, CONCAT(station_name, ' (Platform ', platform, ')')) AS stop_name,
         NULL AS stop_desc,
-        0 AS stop_lat,
-        0 AS stop_lon,
         NULL AS zone_id,
         NULL AS stop_url,
         0 AS location_type,
-        physical_station.crs_code AS parent_station,
-        IF(POSITION('(CIE' IN MIN(station_name)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
+        (select CONCAT('910G', tiploc_code) from physical_station parent where crs_code = physical_station.crs_code and cate_interchange_status <> 9) AS parent_station,
+        IF(POSITION('(CIE' IN station_name), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
         0 AS wheelchair_boarding,
-        platform AS platform_code
+        platform AS platform_code,
+        easting,
+        northing
       FROM physical_station
         INNER JOIN (
           SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
-          UNION SELECT DISTINCT NULL AS tiploc_code, location AS crs_code, platform FROM z_stop_time
-        ) platforms ON physical_station.tiploc_code = platforms.tiploc_code OR physical_station.crs_code = platforms.crs_code
+        ) platforms ON physical_station.tiploc_code = platforms.tiploc_code OR (physical_station.crs_code = platforms.crs_code AND physical_station.cate_interchange_status <> 9)
       WHERE physical_station.crs_code IS NOT NULL
-      GROUP BY physical_station.crs_code, platform
-      UNION SELECT
-        CONCAT(tiploc.crs_code, '_', IFNULL(platform, '')) AS stop_id, -- using the minor CRS code and the platform number as the id
-        tiploc.crs_code AS stop_code, -- and the minor CRS code as the public facing code
-        IF(ISNULL(platform), MIN(tps_description), CONCAT(MIN(tps_description), ' (platform ', platform, ')')) AS stop_name,
-        NULL AS stop_desc,
-        0 AS stop_lat,
-        0 AS stop_lon,
-        NULL AS zone_id,
-        NULL AS stop_url,
-        0 AS location_type,
-        tiploc.crs_code AS parent_station,
-        IF(POSITION('(CIE' IN MIN(tps_description)), 'Europe/Dublin', 'Europe/London') AS stop_timezone,
-        0 AS wheelchair_boarding,
-        platform AS platform_code
-      FROM tiploc
-        INNER JOIN (
-          SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
-          UNION SELECT DISTINCT NULL AS tiploc_code, location AS crs_code, platform FROM z_stop_time
-        ) platforms ON tiploc.tiploc_code = platforms.tiploc_code OR tiploc.crs_code = platforms.crs_code
-      WHERE tiploc.crs_code IS NOT NULL AND tiploc.crs_code NOT IN (SELECT crs_reference_code FROM physical_station)
-      GROUP BY tiploc.crs_code, platform
     `);
 
     // overlay the long and latitude values from configuration
-    return results.map(stop => {
-      const station_data = this.stationCoordinates[stop.stop_code] ?? this.stationCoordinates[stop.parent_station];
-      if (stop.stop_id.includes('_')) {
-        const parts = stop.stop_id.split('_');
-        if (parts[1] !== '') {
-          const platform_data = (station_data?.platforms ?? [])[parts[1]];
+    return results.map(row => {
+      const [stop_lon, stop_lat] = proj4('EPSG:27700', 'EPSG:4326', [(row.easting - 10000) * 100, (row.northing - 60000) * 100]);
+      const {easting, northing, ...stop} = {...row, stop_lon, stop_lat};
+      const station_data =
+          this.stationCoordinates[stop.stop_code]
+          ?? this.stationCoordinates[results.find(parent_stop => parent_stop.stop_id === stop.parent_station)?.stop_code ?? ''];
+      if (stop.location_type === 0) {
+        const platform_code = stop.platform_code;
+        if (platform_code) {
+          const platform_data = (station_data?.platforms ?? [])[platform_code];
           if (platform_data !== undefined) {
             // use platform data if available
             return Object.assign(stop, platform_data);
@@ -165,7 +143,7 @@ export class CIFRepository {
           // otherwise inherit station data
           const result = Object.assign(stop, station_data);
           delete result['platforms'];
-          result.stop_name += parts[1] === '' ? '' : ` (Platform ${parts[1]})`;
+          result.stop_name += platform_code ? ` (Platform ${platform_code})` : '';
           result.location_type = 0;
           return result;
         } else {
@@ -190,44 +168,27 @@ export class CIFRepository {
    */
   public async getSchedules(): Promise<ScheduleResults> {
     const scheduleBuilder = new ScheduleBuilder();
-    const [[lastSchedule]] = await this.db.query("SELECT id FROM schedule ORDER BY id desc LIMIT 1");
+    const [[lastSchedule]] = await this.db.query<{id: number}>("SELECT id FROM schedule ORDER BY id desc LIMIT 1");
 
     await Promise.all([
       scheduleBuilder.loadSchedules(this.stream.query(`
         SELECT
           schedule.id AS id, train_uid, retail_train_id, runs_from, runs_to,
           monday, tuesday, wednesday, thursday, friday, saturday, sunday,
-          crs_code, stp_indicator, public_arrival_time, public_departure_time,
+          CONCAT('9100', location, IFNULL(platform, '')) as atco_code, location, crs_code, stp_indicator, public_arrival_time, public_departure_time,
           IF(train_status='S', 'SS', train_category) AS train_category,
           scheduled_arrival_time AS scheduled_arrival_time,
           scheduled_departure_time AS scheduled_departure_time,
           platform, atoc_code, stop_time.id AS stop_id, activity, reservations, train_class
         FROM schedule
         LEFT JOIN schedule_extra ON schedule.id = schedule_extra.schedule
-        LEFT JOIN stop_time ON schedule.id = stop_time.schedule
-        LEFT JOIN physical_station ps ON location = ps.tiploc_code
-        AND runs_from < CURDATE() + INTERVAL 3 MONTH
-        AND runs_to >= CURDATE() - INTERVAL 7 DAY
+        LEFT JOIN (stop_time JOIN physical_station ps ON location = ps.tiploc_code) ON schedule.id = stop_time.schedule
+        WHERE runs_from < CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_END} DAY
+        AND runs_to >= CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_START} DAY
         AND (IF(train_status='S', 'SS', ifnull(train_category, '')) NOT IN ('OL', 'SS', 'BS'))
         AND ifnull(atoc_code, '') NOT IN ('LT', 'TW', 'ES')
         ORDER BY stp_indicator DESC, id, stop_id
       `)),
-      scheduleBuilder.loadSchedules(this.stream.query(`
-        SELECT
-          ${lastSchedule.id} + z_schedule.id AS id, train_uid, null as retail_train_id, runs_from, runs_to,
-          monday, tuesday, wednesday, thursday, friday, saturday, sunday,
-          stp_indicator, location AS crs_code, train_category,
-          public_arrival_time, public_departure_time, scheduled_arrival_time, scheduled_departure_time,
-          platform, atoc_code, z_stop_time.id AS stop_id, activity, NULL AS reservations, "S" AS train_class 
-        FROM z_schedule
-        LEFT JOIN z_schedule_extra ON z_schedule.id = z_schedule_extra.schedule
-        JOIN z_stop_time ON z_schedule.id = z_stop_time.z_schedule
-        WHERE runs_from < CURDATE() + INTERVAL 3 MONTH
-        AND runs_to >= CURDATE() - INTERVAL 7 DAY
-        AND (ifnull(train_category, '') NOT IN ('OL', 'SS', 'BS'))
-        AND ifnull(atoc_code, '') NOT IN ('LT', 'TW', 'ES')
-        ORDER BY stop_id
-      `))
     ]);
 
     return scheduleBuilder.results;
@@ -237,15 +198,14 @@ export class CIFRepository {
    * Get associations
    */
   public async getAssociations(): Promise<Association[]> {
-    const [results] = await this.db.query<AssociationRow[]>(`
+    const [results] = await this.db.query<AssociationRow>(`
       SELECT 
-        a.id AS id, base_uid, assoc_uid, crs_code, assoc_date_ind, assoc_cat,
+        a.id AS id, base_uid, assoc_uid, assoc_location, assoc_date_ind, assoc_cat,
         monday, tuesday, wednesday, thursday, friday, saturday, sunday,
         start_date, end_date, stp_indicator
       FROM association a
-      JOIN tiploc ON assoc_location = tiploc_code
-      WHERE start_date < CURDATE() + INTERVAL 3 MONTH
-      AND end_date >= CURDATE() - INTERVAL 7 DAY
+      WHERE start_date < CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_END} DAY
+      AND end_date >= CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_START} DAY
       ORDER BY stp_indicator DESC, id
     `);
 
@@ -253,7 +213,7 @@ export class CIFRepository {
       row.id,
       row.base_uid,
       row.assoc_uid,
-      row.crs_code,
+      row.assoc_location,
       row.assoc_date_ind,
       row.assoc_cat,
       new ScheduleCalendar(
@@ -298,14 +258,19 @@ export class CIFRepository {
     const results: FixedLink[] = [];
 
     for (const row of rows) {
-      results.push(this.getFixedLinkRow(row.origin, row.destination, row));
-      results.push(this.getFixedLinkRow(row.destination, row.origin, row));
+      const origin = await this.getStopId(row.origin);
+      const destination = await this.getStopId(row.destination);
+      if (origin === null || destination === null) {
+        throw new Error(`The stations of ${row.origin} or ${row.destination} cannot be found.`);
+      }
+      results.push(this.getFixedLinkRow(origin, destination, row));
+      results.push(this.getFixedLinkRow(destination, origin, row));
     }
 
     return results;
   }
 
-  private getFixedLinkRow(origin: CRS, destination: CRS, row: FixedLinkRow): FixedLink {
+  private getFixedLinkRow(origin: AtcoCode, destination: AtcoCode, row: FixedLinkRow): FixedLink {
     return {
       from_stop_id: origin,
       to_stop_id: destination,
@@ -332,21 +297,24 @@ export class CIFRepository {
     return Promise.all([this.db.end(), this.stream.end()]);
   }
 
-  public async getStopName(code : CRS) : Promise<string | null> {
-    const stop_data = await this.getStops();
-    return CIFRepository.getStopNameFromStopData(stop_data, code);
-  }
-
-  public static getStopNameFromStopData(stop_data : Stop[], code : CRS) : string | null {
-    const longName = CIFRepository.getFullStopNameFromStopData(stop_data, code);
+  public async getStopName(stop_id : AtcoCode) : Promise<string | null> {
+    const longName = await this.getFullStopName(stop_id);
     if (longName === null || longName.toUpperCase().includes('MAESTEG')) {
       return longName;
     }
     return longName.replace(/ \(.*\)$/g, '');
   }
 
-  public static getFullStopNameFromStopData(stop_data : Stop[], code : CRS) : string | null {
-    return stop_data.find(stop => stop.stop_code === code)?.stop_name ?? null;
+  public async getStopId(code : CRS) : Promise<AtcoCode | null> {
+    const stop_data = await this.getStops();
+    const result = stop_data.find(
+        (value) => value.stop_code === code && value.location_type === 1
+    );
+    return result === undefined ? null : result.stop_id;
+  }
+
+  public async getFullStopName(stop_id : AtcoCode) : Promise<string | null> {
+    return (await this.findStopById(stop_id))?.stop_name ?? null;
   }
 }
 
@@ -364,6 +332,8 @@ export interface ScheduleStopTimeRow {
   saturday: 0 | 1,
   sunday: 0 | 1,
   stp_indicator: STP,
+  atco_code: AtcoCode,
+  location: TIPLOC,
   crs_code: CRS,
   train_category: string,
   atoc_code: string | null,
@@ -372,7 +342,7 @@ export interface ScheduleStopTimeRow {
   scheduled_arrival_time: string | null,
   scheduled_departure_time: string | null,
   platform: string,
-  activity: string,
+  activity: string | null,
   train_class: null | "S" | "B",
   reservations: null | "R" | "S" | "A"
 }
@@ -392,7 +362,7 @@ interface AssociationRow {
   id: number;
   base_uid: string;
   assoc_uid: string;
-  crs_code: CRS;
+  assoc_location: TIPLOC;
   start_date: string;
   end_date: string;
   assoc_date_ind: DateIndicator,

@@ -3,7 +3,7 @@ import moment = require("moment");
 import {Days, ScheduleCalendar} from "../../../src/gtfs/native/ScheduleCalendar";
 import {STP, TUID} from "../../../src/gtfs/native/OverlayRecord";
 import {StopTime} from "../../../src/gtfs/file/StopTime";
-import {CRS} from "../../../src/gtfs/file/Stop";
+import {CRS, TIPLOC} from "../../../src/gtfs/file/Stop";
 import {Association, AssociationType, DateIndicator} from "../../../src/gtfs/native/Association";
 import {applyAssociations, AssociationIndex, ScheduleIndex} from "../../../src/gtfs/command/ApplyAssociations";
 import {applyOverlays} from "../../../src/gtfs/command/ApplyOverlays";
@@ -38,7 +38,7 @@ describe("ApplyAssociations", () => {
 
     // create an association record that spans both base1, base2 and assoc1, assoc2
     const calendar = new ScheduleCalendar(moment("2017-07-01"), moment("2017-07-31"), ALL_DAYS);
-    const association1 = association("A", "B", AssociationType.Split, "ASH", DateIndicator.Next, calendar);
+    const association1 = association("A", "B", AssociationType.Split, "ASHXXXX", DateIndicator.Next, calendar);
 
     const resultByTuid = applyAssociations(
       <ScheduleIndex>applyOverlays([base1, assoc1, base2, assoc2]),
@@ -90,6 +90,8 @@ export function stop(stopSequence: number, location: CRS, time: string): StopTim
     arrival_time: time,
     departure_time: time + ":30",
     stop_id: location,
+    stop_code: location,
+    tiploc_code: `${location}XXXX`,
     stop_sequence: stopSequence,
     stop_headsign: null,
     pickup_type: 0,
@@ -102,7 +104,7 @@ export function stop(stopSequence: number, location: CRS, time: string): StopTim
 function association(base: TUID,
                      assoc: TUID,
                      type: AssociationType,
-                     location: CRS,
+                     location: TIPLOC,
                      dateIndicator: DateIndicator = DateIndicator.Same,
                      calendar: ScheduleCalendar): Association {
   return new Association(

@@ -1,7 +1,7 @@
-import {StopPlatform} from './StopTime';
+import {Platform} from './StopTime';
 
 export interface Stop {
-  stop_id: StopPlatform;
+  stop_id: AtcoCode;
   stop_code: CRS;
   stop_name: string;
   stop_desc: string;
@@ -10,14 +10,12 @@ export interface Stop {
   zone_id: number;
   stop_url: string;
   location_type: 0 | 1;
-  parent_station: CRS;
+  parent_station: AtcoCode;
   stop_timezone: string;
   wheelchair_boarding: 0 | 1 | 2;
-  platform_code: string;
-}
-
-export function getCrsFromStopId(stop_id : StopPlatform) : CRS {
-  return stop_id.substring(0, 3);
+  platform_code: Platform | null;
 }
 
 export type CRS = string;
+export type TIPLOC = string;
+export type AtcoCode = string;
