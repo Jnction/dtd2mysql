@@ -99,7 +99,7 @@ export class Schedule implements OverlayRecord {
     const prefix = this.operator ?? null;
     // colours sourced from https://en.wikipedia.org/wiki/Wikipedia:WikiProject_UK_Railways/Colours_list
     const tocData = {
-      "AW": {name: "Transport for Wales", colour: 0xff0000},
+      "AW": {name: 'TfW Rail', long_name: "Transport for Wales", colour: 0xff0000},
       "CC": {name: "c2c", colour: 0xb7007c},
       "CH": {name: "Chiltern Railways", colour: 0x00bfff},
       "XC": {name: "CrossCountry", colour: 0x660f21},
@@ -108,7 +108,7 @@ export class Schedule implements OverlayRecord {
       "ES": {name: "Eurostar", colour: 0xffd700},
       "GW": {name: "GWR", long_name: "Great Western Railway", colour: 0x0a493e},
       "HT": {name: "Hull Trains", colour: 0xde005c},
-      "TP": {name: "TransPennine Express", colour: 0x09a4ec },
+      "TP": {name: "TPE", long_name: "TransPennine Express", colour: 0x09a4ec },
       "GX": {name: "Gatwick Express", colour: 0xeb1e2d},
       "GC": {name: "Grand Central", colour: 0x1d1d1b},
       "GN": {name: "Great Northern", colour: 0x0099ff},
@@ -116,7 +116,7 @@ export class Schedule implements OverlayRecord {
       "HX": {name: "Heathrow Express", colour: 0x532e63},
       "IL": {name: "Island Line", colour: 0x1e90ff},
       "LD": {name: "Lumo", colour: 0x2b6ef5},
-      "LM": {name: "West Midlands Trains", colour: null},
+      "LM": {name: 'WMT', long_name: "West Midlands Trains", colour: null},
       "LO": {name: "Overground", long_name: "London Overground", colour: 0xff7518},
       "LT": {name: "Underground", long_name: "London Underground", colour: 0x000f9f},
       "ME": {name: "Merseyrail", colour: 0xfff200},
@@ -126,7 +126,7 @@ export class Schedule implements OverlayRecord {
       "SE": {name: "Southeastern", colour: 0x389cff},
       "SN": {name: "Southern", colour: 0x8cc63e},
       "TL": {name: "Thameslink", colour: 0xff5aa4},
-      "VT": {name: "Avanti West Coast", colour: 0x004354},
+      "VT": {name: 'Avanti', long_name: "Avanti West Coast", colour: 0x004354},
       "TW": {name: "Metro", long_name: "Tyne & Wear Metro", colour: null},
       "CS": {name: "Caledonian Sleeper", colour: 0x1d2e35},
       "XR": {name: "Elizabeth line", colour: 0x9364cc},
@@ -147,8 +147,8 @@ export class Schedule implements OverlayRecord {
         'Liverpool',
         'Crewe'
       ].find((element) => routeLongName.includes(element)) !== undefined
-          ? {name : 'London Northwestern Railway', colour : 0x00bf6f}
-          : {name : 'West Midlands Railway', colour : 0xe07709};
+          ? {name: 'LNR', long_name : 'London Northwestern Railway', colour : 0x00bf6f}
+          : {name: 'WMR', long_name : 'West Midlands Railway', colour : 0xe07709};
     }
     if (prefix === 'LE') {
       return ['London', 'Stansted Airport'].every((element) => routeLongName.includes(element))
