@@ -40,6 +40,7 @@ export function schedule(id: number,
 
   return new Schedule(
     id,
+    `${tuid}_${moment(from).format('YYYYMMDD')}_${moment(to).format('YYYYMMDD')}`,
     stops,
     tuid,
     "",

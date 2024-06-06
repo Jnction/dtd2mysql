@@ -116,11 +116,12 @@ export class Association implements OverlayRecord {
     }
 
     let stopSequence: number = 1;
+    const tripId = `${tuid}_${moment(this.calendar.runsFrom).format('YYYYMMDD')}_${moment(this.calendar.runsTo).format('YYYYMMDD')}`;
 
     const stops = [
-      ...start.map(s => cloneStop(s, stopSequence++, assoc.id, undefined, false, this.assocType === AssociationType.Split)),
-      cloneStop(assocStop, stopSequence++, assoc.id, undefined, this.assocType === AssociationType.Join, this.assocType === AssociationType.Split),
-      ...end.map(s => cloneStop(s, stopSequence++, assoc.id, assocStop, this.assocType === AssociationType.Join, false))
+      ...start.map(s => cloneStop(s, stopSequence++, tripId, undefined, false, this.assocType === AssociationType.Split)),
+      cloneStop(assocStop, stopSequence++, tripId, undefined, this.assocType === AssociationType.Join, this.assocType === AssociationType.Split),
+      ...end.map(s => cloneStop(s, stopSequence++, tripId, assocStop, this.assocType === AssociationType.Join, false))
     ];
 
     const calendar = this.dateIndicator === DateIndicator.Next ? assoc.calendar.shiftBackward() : assoc.calendar;
@@ -131,6 +132,7 @@ export class Association implements OverlayRecord {
     );
     return newCalendar === null ? null : new Schedule(
       assoc.id,
+      tripId,
       stops,
       tuid,
       assoc.rsid,
@@ -176,7 +178,7 @@ export class Association implements OverlayRecord {
 function cloneStop(
     stop: StopTime,
     stopSequence: number,
-    tripId: number,
+    tripId: string,
     assocStop: StopTime | null = null,
     disablePickup: boolean = false,
     disableDropOff: boolean = false

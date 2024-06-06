@@ -16,6 +16,7 @@ export class Schedule implements OverlayRecord {
 
   constructor(
     public readonly id: number,
+    public readonly tripId: string,
     public readonly stopTimes: StopTime[],
     public readonly tuid: TUID,
     public readonly rsid: RSID | null,
@@ -45,7 +46,8 @@ export class Schedule implements OverlayRecord {
   public clone(calendar: ScheduleCalendar, scheduleId: number): Schedule {
     return new Schedule(
       scheduleId,
-      this.stopTimes.map(st => Object.assign({}, st, { trip_id: scheduleId })),
+      this.tripId,
+      this.stopTimes,
       this.tuid,
       this.rsid,
       calendar,
@@ -64,7 +66,7 @@ export class Schedule implements OverlayRecord {
     return {
       route_id: routeId,
       service_id: serviceId,
-      trip_id: this.id,
+      trip_id: this.tripId,
       trip_headsign: await cifRepository.getStopName(this.destination) ?? this.destination,
       trip_short_name: this.rsid?.substr(0, 6) ?? this.tuid,
       direction_id: 0,

@@ -52,10 +52,10 @@ describe("Association", () => {
     ]);
 
     const assoc = schedule(2, "B", "2017-07-10", "2017-07-16", STP.Overlay, ALL_DAYS, [
-      stop(1, "ASH", "12:05", 2),
-      stop(3, "DOV", "13:00", 2),
-      stop(5, "A", "13:20", 2),
-      stop(7, "B", "13:40", 2),
+      stop(1, "ASH", "12:05", 'U67890'),
+      stop(3, "DOV", "13:00", 'U67890'),
+      stop(5, "A", "13:20", 'U67890'),
+      stop(7, "B", "13:40", 'U67890'),
     ]);
 
     const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX").apply(base, assoc, idGenerator());
@@ -63,19 +63,19 @@ describe("Association", () => {
     chai.expect(result.tuid).to.equal("A_B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("PDW");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
-    chai.expect(result.stopTimes[0].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[0].trip_id).to.equal('A_B_20170710_20170716');
     chai.expect(result.stopTimes[1].stop_id).to.equal("ASH");
     chai.expect(result.stopTimes[1].stop_sequence).to.equal(2);
-    chai.expect(result.stopTimes[1].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[1].trip_id).to.equal('A_B_20170710_20170716');
     chai.expect(result.stopTimes[2].stop_id).to.equal("DOV");
     chai.expect(result.stopTimes[2].stop_sequence).to.equal(3);
-    chai.expect(result.stopTimes[2].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[2].trip_id).to.equal('A_B_20170710_20170716');
     chai.expect(result.stopTimes[3].stop_id).to.equal("A");
     chai.expect(result.stopTimes[3].stop_sequence).to.equal(4);
-    chai.expect(result.stopTimes[3].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[3].trip_id).to.equal('A_B_20170710_20170716');
     chai.expect(result.stopTimes[4].stop_id).to.equal("B");
     chai.expect(result.stopTimes[4].stop_sequence).to.equal(5);
-    chai.expect(result.stopTimes[4].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[4].trip_id).to.equal('A_B_20170710_20170716');
   });
 
   it("applies overnight splits", () => {
@@ -181,11 +181,11 @@ describe("Association", () => {
     ]);
 
     const assoc = schedule(2, "B", "2017-07-10", "2017-07-16", STP.Overlay, ALL_DAYS, [
-      stop(1, "A", "10:00", 2),
-      stop(3, "B", "10:20", 2),
-      stop(5, "C", "10:40", 2),
-      stop(7, "DOV", "11:00", 2),
-      stop(9, "ASH", "11:55", 2),
+      stop(1, "A", "10:00", 'U67890'),
+      stop(3, "B", "10:20", 'U67890'),
+      stop(5, "C", "10:40", 'U67890'),
+      stop(7, "DOV", "11:00", 'U67890'),
+      stop(9, "ASH", "11:55", 'U67890'),
     ]);
 
     const [result] = association(base, assoc, AssociationType.Join, "ASHXXXX").apply(base, assoc, idGenerator());
@@ -193,25 +193,25 @@ describe("Association", () => {
     chai.expect(result.tuid).to.equal("B_A");
     chai.expect(result.stopTimes[0].stop_id).to.equal("A");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
-    chai.expect(result.stopTimes[0].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[0].trip_id).to.equal('B_A_20170710_20170716');
     chai.expect(result.stopTimes[1].stop_id).to.equal("B");
     chai.expect(result.stopTimes[1].stop_sequence).to.equal(2);
-    chai.expect(result.stopTimes[1].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[1].trip_id).to.equal('B_A_20170710_20170716');
     chai.expect(result.stopTimes[2].stop_id).to.equal("C");
     chai.expect(result.stopTimes[2].stop_sequence).to.equal(3);
-    chai.expect(result.stopTimes[2].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[2].trip_id).to.equal('B_A_20170710_20170716');
     chai.expect(result.stopTimes[3].stop_id).to.equal("DOV");
     chai.expect(result.stopTimes[3].stop_sequence).to.equal(4);
-    chai.expect(result.stopTimes[3].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[3].trip_id).to.equal('B_A_20170710_20170716');
     chai.expect(result.stopTimes[4].stop_id).to.equal("ASH");
     chai.expect(result.stopTimes[4].stop_sequence).to.equal(5);
-    chai.expect(result.stopTimes[4].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[4].trip_id).to.equal('B_A_20170710_20170716');
     chai.expect(result.stopTimes[5].stop_id).to.equal("PDW");
     chai.expect(result.stopTimes[5].stop_sequence).to.equal(6);
-    chai.expect(result.stopTimes[5].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[5].trip_id).to.equal('B_A_20170710_20170716');
     chai.expect(result.stopTimes[6].stop_id).to.equal("TON");
     chai.expect(result.stopTimes[6].stop_sequence).to.equal(7);
-    chai.expect(result.stopTimes[6].trip_id).to.equal(2);
+    chai.expect(result.stopTimes[6].trip_id).to.equal('B_A_20170710_20170716');
   });
 
   it("takes the correct departure time for joins", () => {
@@ -295,7 +295,7 @@ describe("Association", () => {
 
 const ALL_DAYS: Days = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1 };
 
-function stop(stopSequence: number, location: CRS, time: string, tripId: number = 1): StopTime {
+function stop(stopSequence: number, location: CRS, time: string, tripId: string = 'U12345'): StopTime {
   return {
     trip_id: tripId,
     arrival_time: time,

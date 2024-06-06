@@ -88,7 +88,7 @@ CREATE TABLE shapes (
 
 DROP TABLE IF EXISTS stop_times;
 CREATE TABLE stop_times (
-  trip_id mediumint(12) unsigned NOT NULL,
+  trip_id varchar(100) NOT NULL,
   arrival_time time DEFAULT NULL,
   departure_time time DEFAULT NULL,
   stop_id varchar(100) NOT NULL,
@@ -134,7 +134,7 @@ DROP TABLE IF EXISTS trips;
 CREATE TABLE trips (
   route_id varchar(255) NOT NULL,
   service_id smallint(12) unsigned NOT NULL,
-  trip_id mediumint(12) unsigned NOT NULL,
+  trip_id varchar(100) NOT NULL,
   trip_headsign varchar(50) DEFAULT NULL,
   trip_short_name varchar(50) DEFAULT NULL,
   direction_id tinyint(1) unsigned DEFAULT NULL,

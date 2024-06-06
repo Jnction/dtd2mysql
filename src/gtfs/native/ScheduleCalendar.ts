@@ -6,8 +6,6 @@ import {Calendar} from "../file/Calendar";
 import {CalendarDate} from "../file/CalendarDate";
 
 export class ScheduleCalendar {
-  public static readonly SHORT_OVERLAY_LENGTH = 7;
-
   constructor(
     public readonly runsFrom: Moment,
     public readonly runsTo: Moment,
@@ -40,8 +38,8 @@ export class ScheduleCalendar {
       const key = sharedDay.format("YYYYMMDD");
       const isShared = !this.excludeDays[key] && !overlay.excludeDays[key];
 
-      if (isShared && ++numDays > ScheduleCalendar.SHORT_OVERLAY_LENGTH) {
-        return OverlapType.Long;
+      if (isShared) {
+        ++numDays;
       }
     }
 
@@ -178,15 +176,15 @@ export class ScheduleCalendar {
    * Returns true if this calendar would not be valid on any days before the given calendar starts
    */
   public canMerge(calendar: ScheduleCalendar): boolean {
-    const startDate = this.runsTo.clone();
-    let  numAdditionalExcludeDays = 0;
-
-    while (startDate.add(1, "days").isBefore(calendar.runsFrom)) {
-      if (this.days[startDate.day()] && ++numAdditionalExcludeDays > ScheduleCalendar.SHORT_OVERLAY_LENGTH) {
-        return false;
-      }
-    }
-
+    // const startDate = this.runsTo.clone();
+    // let  numAdditionalExcludeDays = 0;
+    //
+    // while (startDate.add(1, "days").isBefore(calendar.runsFrom)) {
+    //   if (this.days[startDate.day()] && ++numAdditionalExcludeDays > ScheduleCalendar.SHORT_OVERLAY_LENGTH) {
+    //     return false;
+    //   }
+    // }
+    //
     return true;
   }
 
@@ -303,7 +301,6 @@ export type BankHoliday = string;
 export enum OverlapType {
   None = 0,
   Short = 1,
-  Long = 2
 }
 
 export const NO_DAYS: Days = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };

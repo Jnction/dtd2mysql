@@ -72,13 +72,11 @@ describe("ApplyOverlays", () => {
     const long = schedule(2, "A", "2017-01-02", "2017-01-30");
 
     const schedules = applyOverlays([perm, long]);
-    const [s1, s2, s3] = schedules["A"];
+    const [s1, s2] = schedules["A"];
 
     chai.expect(s1).not.to.equal(perm);
     chai.expect(s1.tuid).to.equal(perm.tuid);
-    chai.expect(s2).not.to.equal(perm);
-    chai.expect(s2.tuid).to.equal(perm.tuid);
-    chai.expect(s3).to.equal(long);
+    chai.expect(s2).to.equal(long);
   });
 
   it("removes cancellations", () => {
