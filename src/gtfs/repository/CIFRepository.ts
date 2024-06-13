@@ -130,7 +130,10 @@ export class CIFRepository {
             NULL as platform
           FROM physical_station WHERE crs_code IS NOT NULL
         ) platforms ON physical_station.tiploc_code = platforms.tiploc_code OR (physical_station.crs_code = platforms.crs_code AND physical_station.cate_interchange_status <> 9)
-      WHERE physical_station.crs_code IS NOT NULL
+      -- ANSL3 is a tiploc code representing the track leading to platform 3 of Anniesland
+      -- The ATCO generation will then clash with the platform 3 at the TIPLOC ANSL, which represents the whole of Anniesland station
+      -- The schedule data uses ANSL for trains starting from platform 3, refer to ScotRail Mo-Fr 18:03 service from Anniesland to Glasgow Queen Street for details
+      WHERE physical_station.crs_code IS NOT NULL AND physical_station.tiploc_code <> 'ANSL3'
     `);
 
     // overlay the long and latitude values from configuration
