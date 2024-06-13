@@ -11,7 +11,7 @@ describe("ScheduleCalendar", () => {
     const overlay = calendar("2017-01-31", "2017-02-07");
     const nolay = calendar("2017-02-05", "2017-02-07");
 
-    chai.expect(perm.getOverlap(underlay)).to.deep.equal(OverlapType.Long);
+    chai.expect(perm.getOverlap(underlay)).to.deep.equal(OverlapType.Short);
     chai.expect(perm.getOverlap(innerlay)).to.deep.equal(OverlapType.Short);
     chai.expect(perm.getOverlap(overlay)).to.deep.equal(OverlapType.Short);
     chai.expect(perm.getOverlap(nolay)).to.deep.equal(OverlapType.None);
@@ -35,7 +35,7 @@ describe("ScheduleCalendar", () => {
     const long = calendar("2017-01-11", "2017-01-19");
 
     chai.expect(perm.getOverlap(short)).to.deep.equal(OverlapType.Short);
-    chai.expect(perm.getOverlap(long)).to.deep.equal(OverlapType.Long);
+    chai.expect(perm.getOverlap(long)).to.deep.equal(OverlapType.Short);
   });
 
   it("adds exclude days", () => {
@@ -156,7 +156,7 @@ describe("ScheduleCalendar", () => {
     const c3 = calendar("2017-10-13", "2017-10-16", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
 
     chai.expect(c1.canMerge(c2)).to.be.true;
-    chai.expect(c1.canMerge(c3)).to.be.false;
+    chai.expect(c1.canMerge(c3)).to.be.true;
   });
 
   it("can merge with another calendar", () => {

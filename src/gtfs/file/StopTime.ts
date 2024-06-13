@@ -1,7 +1,7 @@
 import {AtcoCode, CRS, TIPLOC} from './Stop';
 
 export interface StopTime {
-  trip_id: number;
+  trip_id: string;
   arrival_time: string | null;
   departure_time: string | null;
   stop_id: AtcoCode;

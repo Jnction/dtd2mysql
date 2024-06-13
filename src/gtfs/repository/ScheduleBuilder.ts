@@ -20,6 +20,10 @@ export class ScheduleBuilder {
   private readonly schedules: Schedule[] = [];
   private maxId: number = 0;
 
+  private getTripId(row: ScheduleStopTimeRow) {
+    return `${row.train_uid}_${moment(row.runs_from).format('YYYYMMDD')}_${moment(row.runs_to).format('YYYYMMDD')}`;
+  }
+
   /**
    * Take a stream of ScheduleStopTimeRow, turn them into Schedule objects and add the result to the schedules
    */
@@ -73,6 +77,7 @@ export class ScheduleBuilder {
 
     return new Schedule(
       row.id,
+      this.getTripId(row),
       stops,
       row.train_uid,
       row.retail_train_id,
@@ -117,7 +122,7 @@ export class ScheduleBuilder {
     const dropOff = dropOffActivities.find(a => activities.includes(a)) ? 0 : 1;
 
     return {
-      trip_id: row.id,
+      trip_id: this.getTripId(row),
       arrival_time: (arrivalTime || departureTime),
       departure_time: (departureTime || arrivalTime),
       stop_id: row.atco_code,

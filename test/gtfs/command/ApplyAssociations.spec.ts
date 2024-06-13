@@ -86,7 +86,7 @@ const ALL_DAYS: Days = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1 };
 
 export function stop(stopSequence: number, location: CRS, time: string): StopTime {
   return {
-    trip_id: 1,
+    trip_id: 'U12345',
     arrival_time: time,
     departure_time: time + ":30",
     stop_id: location,
