@@ -176,15 +176,6 @@ export class ScheduleCalendar {
    * Returns true if this calendar would not be valid on any days before the given calendar starts
    */
   public canMerge(calendar: ScheduleCalendar): boolean {
-    // const startDate = this.runsTo.clone();
-    // let  numAdditionalExcludeDays = 0;
-    //
-    // while (startDate.add(1, "days").isBefore(calendar.runsFrom)) {
-    //   if (this.days[startDate.day()] && ++numAdditionalExcludeDays > ScheduleCalendar.SHORT_OVERLAY_LENGTH) {
-    //     return false;
-    //   }
-    // }
-    //
     return true;
   }
 
