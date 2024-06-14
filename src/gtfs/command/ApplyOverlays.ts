@@ -14,8 +14,9 @@ export function applyOverlays(schedules: OverlayRecord[], idGenerator: IdGenerat
       // get any schedules that share the same TUID
       for (const baseSchedule of schedulesByTuid[schedule.tuid] || []) {
         // remove the underlying schedule and add the replacement(s)
+        const overlay = applyOverlay(baseSchedule, schedule, idGenerator);
         schedulesByTuid[schedule.tuid].splice(
-          schedulesByTuid[schedule.tuid].indexOf(baseSchedule), 1, ...applyOverlay(baseSchedule, schedule, idGenerator)
+          schedulesByTuid[schedule.tuid].indexOf(baseSchedule), 1, ...overlay === null ? [] : [overlay]
         );
       }
     }
@@ -40,21 +41,21 @@ function *getDefaultIdGenerator(): IterableIterator<number> {
 }
 
 /**
- * Check if the given schedule overlaps the current one and if necessary divide this schedule into many others.
+ * Check if the given schedule overlaps the current one and if necessary add exclude days to this schedule.
  *
  * If there is no overlap this Schedule will be returned intact.
  */
-function applyOverlay(base: OverlayRecord, overlay: OverlayRecord, ids: IdGenerator): OverlayRecord[] {
+function applyOverlay(base: OverlayRecord, overlay: OverlayRecord, ids: IdGenerator): OverlayRecord | null {
   const overlap = base.calendar.getOverlap(overlay.calendar);
 
   // if this schedules schedule overlaps it at any point
   if (overlap === OverlapType.None) {
-    return [base];
+    return base;
   }
 
-  return overlap === OverlapType.Short
-    ? base.calendar.addExcludeDays(overlay.calendar).map(calendar => base.clone(calendar, base.id))
-    : base.calendar.divideAround(overlay.calendar).map(calendar => base.clone(calendar, ids.next().value));
+  const newCalendar = base.calendar.addExcludeDays(overlay.calendar);
+
+  return newCalendar === null ? null : base.clone(newCalendar, base.id);
 }
 
 
