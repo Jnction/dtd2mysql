@@ -1,5 +1,7 @@
+import * as csvParse from 'csv-parse/sync';
 import * as memoize from "memoized-class-decorator";
 import {Pool} from 'mysql2';
+import * as fs from 'node:fs';
 import {CLICommand} from "./CLICommand";
 import {ImportFeedCommand} from "./ImportFeedCommand";
 import {DatabaseConfiguration, DatabaseConnection} from "../database/DatabaseConnection";
@@ -18,6 +20,7 @@ import {GTFSImportCommand} from "./GTFSImportCommand";
 import {downloadUrl} from "../../config/nfm64";
 import {DownloadFileCommand} from "./DownloadFileCommand";
 import {PromiseSFTP} from "../sftp/PromiseSFTP";
+import {Stop, TIPLOC} from "../gtfs/file/Stop";
 
 export class Container {
 
@@ -86,7 +89,8 @@ export class Container {
       new CIFRepository(
         this.getDatabaseConnection(),
         this.getDatabaseStream(),
-        stationCoordinates
+        stationCoordinates,
+        this.getTiplocCoordinates() ?? undefined
       ),
       output
     );
@@ -195,4 +199,24 @@ export class Container {
     };
   }
 
+  private getTiplocCoordinates() : {[key : TIPLOC] : Stop} | null {
+    const tiplocFilePath = `${__dirname}/../../tiplocs.csv`;
+    const records : Stop[] = fs.existsSync(tiplocFilePath)
+      ? csvParse.parse(
+        fs.readFileSync(tiplocFilePath, {encoding: 'utf8'}).replace(/^\uFEFF/, ''),
+        {
+          columns: true,
+          cast: (value, context) => ['stop_lon', 'stop_lat', 'easting', 'northing'].includes(String(context.column))
+            ? Number(value)
+            : value
+        }
+      )
+      : null;
+    if (records === null) return null;
+    const result = {};
+    for (const item of records) {
+      result[item.stop_id] = item;
+    }
+    return result;
+  }
 }

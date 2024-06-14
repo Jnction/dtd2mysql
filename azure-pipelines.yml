@@ -35,6 +35,7 @@ steps:
        README.md
        yarn.lock
        logo.png
+       tiplocs.csv
     targetFolder: '$(Build.ArtifactStagingDirectory)'
   displayName: 'Copy project files'
 
