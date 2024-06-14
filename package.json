@@ -38,6 +38,7 @@
   "dependencies": {
     "@types/proj4": "^2.5.5",
     "adm-zip": "^0.5.10",
+    "app-root-path": "^3.1.0",
     "byline": "^5.0.0",
     "csv-parse": "^5.5.6",
     "csv-write-stream": "^2.0.0",

@@ -1,3 +1,4 @@
+import appRootPath = require('app-root-path');
 import * as csvParse from 'csv-parse/sync';
 import * as memoize from "memoized-class-decorator";
 import {Pool} from 'mysql2';
@@ -200,7 +201,7 @@ export class Container {
   }
 
   private getTiplocCoordinates() : TiplocCoordiates | null {
-    const tiplocFilePath = `${__dirname}/../../tiplocs.csv`;
+    const tiplocFilePath = `${appRootPath}/tiplocs.csv`;
     const records = fs.existsSync(tiplocFilePath)
       ? csvParse.parse(
         fs.readFileSync(tiplocFilePath, {encoding: 'utf8'}).replace(/^\uFEFF/, ''),
