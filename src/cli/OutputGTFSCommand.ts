@@ -116,7 +116,10 @@ export class OutputGTFSCommand implements CLICommand {
       const serviceId = serviceIds[schedule.calendar.id];
 
       trips.write(await schedule.toTrip(serviceId, routeId, this.repository));
-      schedule.stopTimes.filter(r => r.departure_time !== null || r.arrival_time !== null /* filter out passes */)
+      schedule.stopTimes.filter(r =>
+          r.stop_code !== null // filter out technical stops at non-station
+          && (r.departure_time !== null || r.arrival_time !== null) // filter out passes
+      )
           .forEach(r => {
             const {stop_code, tiploc_code, ...remaining} = r;
             stopTimes.write(remaining);

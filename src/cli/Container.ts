@@ -9,7 +9,7 @@ import config from "../../config";
 import {CleanFaresCommand} from "./CleanFaresCommand";
 import {ShowHelpCommand} from "./ShowHelpCommand";
 import {OutputGTFSCommand} from "./OutputGTFSCommand";
-import {CIFRepository} from "../gtfs/repository/CIFRepository";
+import {CIFRepository, TiplocCoordiates} from "../gtfs/repository/CIFRepository";
 import {stationCoordinates} from "../../config/gtfs/station-coordinates";
 import {FileOutput} from "../gtfs/output/FileOutput";
 import {GTFSOutput} from "../gtfs/output/GTFSOutput";
@@ -199,23 +199,28 @@ export class Container {
     };
   }
 
-  private getTiplocCoordinates() : {[key : TIPLOC] : Stop} | null {
+  private getTiplocCoordinates() : TiplocCoordiates | null {
     const tiplocFilePath = `${__dirname}/../../tiplocs.csv`;
-    const records : Stop[] = fs.existsSync(tiplocFilePath)
+    const records = fs.existsSync(tiplocFilePath)
       ? csvParse.parse(
         fs.readFileSync(tiplocFilePath, {encoding: 'utf8'}).replace(/^\uFEFF/, ''),
         {
           columns: true,
           cast: (value, context) => ['stop_lon', 'stop_lat', 'easting', 'northing'].includes(String(context.column))
-            ? Number(value)
+            ? value === '' ? null : Number(value)
             : value
         }
       )
       : null;
     if (records === null) return null;
-    const result = {};
+    const result : TiplocCoordiates = {};
     for (const item of records) {
-      result[item.stop_id] = item;
+      if (item.stop_lat !== null && item.stop_lon !== null)
+      result[item.stop_id] = {
+        stop_name: item.stop_name,
+        stop_lat: item.stop_lat,
+        stop_lon: item.stop_lon,
+      };
     }
     return result;
   }

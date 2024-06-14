@@ -1,13 +1,12 @@
-
-import {StopTime} from "../file/StopTime";
-import {ScheduleCalendar} from "./ScheduleCalendar";
-import {Trip} from "../file/Trip";
-import {Route, RouteType} from "../file/Route";
 import {AgencyID} from "../file/Agency";
-import {AtcoCode, TIPLOC} from "../file/Stop";
+import {Route, RouteType} from "../file/Route";
 import {Shape} from '../file/Shape';
-import {OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
+import {AtcoCode, TIPLOC} from "../file/Stop";
+import {StopTime} from "../file/StopTime";
+import {Trip} from "../file/Trip";
 import {CIFRepository} from '../repository/CIFRepository';
+import {OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
+import {ScheduleCalendar} from "./ScheduleCalendar";
 
 /**
  * A CIF schedule (BS record)
@@ -83,14 +82,15 @@ export class Schedule implements OverlayRecord {
     const result : Shape[] = [];
     let sequence = 0;
     for (const stopTime of this.stopTimes) {
-      const stop = await cifRepository.findStopById(stopTime.stop_id);
-      if (stop !== undefined && stop.stop_lat !== null && stop.stop_lon !== null) {
+      const entry = await cifRepository.findStopById(stopTime.stop_id)
+          ?? cifRepository.tiplocCoordinates[stopTime.stop_id.replace(/^9100/, '')];
+      if (entry !== undefined && entry.stop_lat !== null && entry.stop_lon !== null) {
         result.push({
           shape_id: this.id,
-          shape_pt_lat: stop.stop_lat,
-          shape_pt_lon: stop.stop_lon,
+          shape_pt_lat: entry.stop_lat,
+          shape_pt_lon: entry.stop_lon,
           shape_pt_sequence: sequence++,
-        })
+        });
       }
     }
     return result;
