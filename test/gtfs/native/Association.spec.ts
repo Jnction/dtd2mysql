@@ -272,23 +272,16 @@ describe("Association", () => {
       STP.Overlay
     );
 
-    const [result, before, after, ex1, ex2] = association1.apply(base, assoc, idGenerator());
+    const [result, other] = association1.apply(base, assoc, idGenerator());
 
     chai.expect(result.tuid).to.equal("A_B");
     chai.expect(result.calendar.runsFrom.isSame("2017-07-20")).to.equal(true);
     chai.expect(result.calendar.runsTo.isSame("2017-08-16")).to.equal(true);
-    chai.expect(before.tuid).to.equal("B");
-    chai.expect(before.calendar.runsFrom.isSame("2017-07-10")).to.equal(true);
-    chai.expect(before.calendar.runsTo.isSame("2017-07-19")).to.equal(true);
-    chai.expect(after.tuid).to.equal("B");
-    chai.expect(after.calendar.runsFrom.isSame("2017-08-17")).to.equal(true);
-    chai.expect(after.calendar.runsTo.isSame("2017-09-16")).to.equal(true);
-    chai.expect(ex1.tuid).to.equal("B");
-    chai.expect(ex1.calendar.runsFrom.isSame("2017-08-01")).to.equal(true);
-    chai.expect(ex1.calendar.runsTo.isSame("2017-08-01")).to.equal(true);
-    chai.expect(ex2.tuid).to.equal("B");
-    chai.expect(ex2.calendar.runsFrom.isSame("2017-08-05")).to.equal(true);
-    chai.expect(ex2.calendar.runsTo.isSame("2017-08-05")).to.equal(true);
+    chai.expect(other.tuid).to.equal("B");
+    chai.expect(other.calendar.runsFrom.isSame("2017-07-10")).to.equal(true);
+    chai.expect(other.calendar.runsTo.isSame("2017-09-16")).to.equal(true);
+    chai.expect(other.calendar.excludeDays).to.include.all.keys("20170720", "20170816");
+    chai.expect(other.calendar.excludeDays).to.not.have.any.keys("20170801", "20170805");
   });
 
 });

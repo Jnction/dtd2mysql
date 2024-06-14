@@ -32,18 +32,8 @@ export class ScheduleCalendar {
       return OverlapType.None;
     }
 
-    let numDays = 0;
-
-    for (const sharedDay of this.sharedDays(overlay)) {
-      const key = sharedDay.format("YYYYMMDD");
-      const isShared = !this.excludeDays[key] && !overlay.excludeDays[key];
-
-      if (isShared) {
-        ++numDays;
-      }
-    }
-
-    return (numDays > 0) ? OverlapType.Short : OverlapType.None;
+    let first = this.sharedDays(overlay).next();
+    return first.done ? OverlapType.None : OverlapType.Short;
   }
 
   /**
@@ -62,41 +52,22 @@ export class ScheduleCalendar {
   }
 
   /**
-   * Returns the overlapping days between schedules (does not account for exclude days)
+   * Returns the overlapping days between schedules, accounting for exclude days for each calendar
    */
   private* sharedDays(overlay: ScheduleCalendar) {
     const startDate = moment.max(this.runsFrom, overlay.runsFrom).clone();
     const endDate = moment.min(this.runsTo, overlay.runsTo);
 
     while (startDate.isSameOrBefore(endDate)) {
-      if (this.days[startDate.day()] && overlay.days[startDate.day()]) {
+      if (
+        this.days[startDate.day()] && overlay.days[startDate.day()]
+        && !this.excludeDays[startDate.format("YYYYMMDD")] && !overlay.excludeDays[startDate.format("YYYYMMDD")]
+      ) {
         yield startDate.clone();
       }
 
       startDate.add(1, "days");
     }
-  }
-
-  /**
-   * Remove the given date range from this schedule and return one or two calendars
-   */
-  public divideAround(calendar: ScheduleCalendar): ScheduleCalendar[] {
-    const calendars: (ScheduleCalendar|null)[] = [
-      this.clone(this.runsFrom.clone(), calendar.runsFrom.clone().subtract(1, "days")),
-      this.clone(calendar.runsTo.clone().add(1, "days"), this.runsTo.clone())
-    ];
-
-    // if there are any days left after applying the overlay
-    if (this.binaryDays - (this.binaryDays & calendar.binaryDays) > 0) {
-      calendars.push(this.clone(
-        calendar.runsFrom.clone(),
-        calendar.runsTo.clone(),
-        calendar.days,
-        this.excludeDays
-      ));
-    }
-
-    return calendars.filter((c) : c is ScheduleCalendar => c !== null);
   }
 
   /**
@@ -170,46 +141,6 @@ export class ScheduleCalendar {
         exception_type: 2
       };
     });
-  }
-
-  /**
-   * Returns true if this calendar would not be valid on any days before the given calendar starts
-   */
-  public canMerge(calendar: ScheduleCalendar): boolean {
-    return true;
-  }
-
-  /**
-   * Return a new calendar starting from the runsFrom of this calendar and running to the runsTo of the given calendar.
-   *
-   * Exclude days are merged together.
-   */
-  public merge(calendar: ScheduleCalendar): ScheduleCalendar {
-    const excludeDays = Object.assign({}, calendar.excludeDays, this.excludeDays);
-    const startDate = this.runsTo.clone();
-
-    while (startDate.add(1, "days").isBefore(calendar.runsFrom)) {
-      if (this.days[startDate.day()]) {
-        excludeDays[startDate.format("YYYYMMDD")] = startDate.clone();
-      }
-    }
-
-    // for any shared
-    for (const sharedDay of this.sharedDays(calendar)) {
-      const key = sharedDay.format("YYYYMMDD");
-
-      // if the shared day is only excluded in one overlay, remove it
-      if (!(this.excludeDays[key] && calendar.excludeDays[key])) {
-        delete excludeDays[key];
-      }
-    }
-
-    return new ScheduleCalendar(
-      this.runsFrom,
-      moment.max(this.runsTo, calendar.runsTo),
-      this.days,
-      excludeDays
-    );
   }
 
   /**

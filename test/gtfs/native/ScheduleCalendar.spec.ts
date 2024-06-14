@@ -42,8 +42,8 @@ describe("ScheduleCalendar", () => {
     const perm = calendar("2017-01-01", "2017-01-31");
     const overlay = calendar("2017-01-20", "2017-01-21");
 
-    const [calendar1] = perm.addExcludeDays(overlay);
-    const excludeDays = Object.keys(calendar1.excludeDays);
+    const calendar1 = perm.addExcludeDays(overlay);
+    const excludeDays = Object.keys(calendar1!.excludeDays);
 
     chai.expect(excludeDays[0]).to.equal("20170120");
     chai.expect(excludeDays[1]).to.equal("20170121");
@@ -54,13 +54,13 @@ describe("ScheduleCalendar", () => {
     const underlay = calendar("2017-01-01", "2017-01-07");
     const overlay = calendar("2017-01-30", "2017-02-07");
 
-    const [calendar1] = perm.addExcludeDays(underlay);
-    const [calendar2] = calendar1.addExcludeDays(overlay);
-    const excludeDays = Object.keys(calendar2.excludeDays);
+    const calendar1 = perm.addExcludeDays(underlay);
+    const calendar2 = calendar1!.addExcludeDays(overlay);
+    const excludeDays = Object.keys(calendar2!.excludeDays);
 
     chai.expect(excludeDays.length).to.equal(0);
-    chai.expect(calendar2.runsFrom.isSame("20170108")).to.be.true;
-    chai.expect(calendar2.runsTo.isSame("20170129")).to.be.true;
+    chai.expect(calendar2!.runsFrom.isSame("20170108")).to.be.true;
+    chai.expect(calendar2!.runsTo.isSame("20170129")).to.be.true;
   });
 
   it("adding exclude days might remove the schedule", () => {
@@ -68,145 +68,14 @@ describe("ScheduleCalendar", () => {
     const c1 = calendar("2017-01-01", "2017-01-07", { 0: 1, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 });
     const c2 = calendar("2017-01-08", "2017-01-15", { 0: 1, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 });
 
-    const [calendar1] = perm.addExcludeDays(c1);
+    const calendar1 = perm.addExcludeDays(c1)!;
 
     chai.expect(calendar1.runsFrom.isSame("20170108")).to.be.true;
     chai.expect(calendar1.runsTo.isSame("20170115")).to.be.true;
 
     const calendars = calendar1.addExcludeDays(c2);
 
-    chai.expect(calendars.length).to.equal(0);
-  });
-
-  it("divides around a date range spanning the beginning", () => {
-    const perm = calendar("2017-01-05", "2017-01-31");
-    const underlay = calendar("2017-01-01", "2017-01-07");
-
-    const calendars = perm.divideAround(underlay);
-    chai.expect(calendars[0].runsFrom.isSame("2017-01-08")).to.be.true;
-    chai.expect(calendars[0].runsTo.isSame("2017-01-31")).to.be.true;
-  });
-
-  it("divides around a date range spanning the end", () => {
-    const perm = calendar("2017-01-05", "2017-01-31");
-    const underlay = calendar("2017-01-29", "2017-02-07");
-
-    const calendars = perm.divideAround(underlay);
-    chai.expect(calendars[0].runsFrom.isSame("2017-01-05")).to.be.true;
-    chai.expect(calendars[0].runsTo.isSame("2017-01-28")).to.be.true;
-  });
-
-  it("divides around a date range and creates the smallest date range possible", () => {
-    // this is based of a real world scenario using the C29405
-    const perm = calendar("2017-05-26", "2017-06-30", { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0});
-    const underlay = calendar("2017-06-26", "2017-06-30");
-
-    const calendars = perm.divideAround(underlay);
-
-    chai.expect(calendars[0].runsFrom.isSame("2017-05-26")).to.be.true;
-    chai.expect(calendars[0].runsTo.isSame("2017-06-23")).to.be.true;
-  });
-
-  it("divides around a date range in the middle", () => {
-    const perm = calendar("2017-01-05", "2017-01-31");
-    const underlay = calendar("2017-01-15", "2017-01-20");
-
-    const calendars = perm.divideAround(underlay);
-    chai.expect(calendars[0].runsFrom.isSame("2017-01-05")).to.be.true;
-    chai.expect(calendars[0].runsTo.isSame("2017-01-14")).to.be.true;
-    chai.expect(calendars[1].runsFrom.isSame("2017-01-21")).to.be.true;
-    chai.expect(calendars[1].runsTo.isSame("2017-01-31")).to.be.true;
-  });
-
-  it("partially degrades the services", () => {
-    const perm = calendar("2017-01-01", "2017-01-31");
-    // Wed + Thurs for two weeks
-    const underlay = calendar("2017-01-11", "2017-01-19", { 0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 0, 6: 0 });
-
-    const calendars = perm.divideAround(underlay);
-    chai.expect(calendars[0].runsFrom.isSame("2017-01-01")).to.be.true;
-    chai.expect(calendars[0].runsTo.isSame("2017-01-10")).to.be.true;
-    chai.expect(calendars[1].runsFrom.isSame("2017-01-20")).to.be.true;
-    chai.expect(calendars[1].runsTo.isSame("2017-01-31")).to.be.true;
-    chai.expect(calendars[2].days).to.deep.equal({0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 1, 6: 1});
-    // days where the service is not running are removed
-    chai.expect(calendars[2].runsFrom.isSame("2017-01-13")).to.be.true;
-    chai.expect(calendars[2].runsTo.isSame("2017-01-17")).to.be.true;
-  });
-
-  it("degrades the service to the point where it doesn't run", () => {
-    // Monday + Friday service
-    const perm = calendar("2017-01-02", "2017-01-30", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-    // Remove a Monday
-    const underlay = calendar("2017-01-15", "2017-01-19", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 });
-
-    const calendars = perm.divideAround(underlay);
-
-    chai.expect(calendars.length).to.equal(2);
-    chai.expect(calendars[0].runsFrom.isSame("2017-01-02")).to.be.true;
-    chai.expect(calendars[0].runsTo.isSame("2017-01-13")).to.be.true;
-    chai.expect(calendars[1].runsFrom.isSame("2017-01-20")).to.be.true;
-    chai.expect(calendars[1].runsTo.isSame("2017-01-30")).to.be.true;
-  });
-
-  it("detects when a calendar can be merged with another", () => {
-    // Monday + Friday service
-    const c1 = calendar("2017-07-03", "2017-07-14", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-    const c2 = calendar("2017-07-17", "2017-07-21", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-    const c3 = calendar("2017-10-13", "2017-10-16", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-
-    chai.expect(c1.canMerge(c2)).to.be.true;
-    chai.expect(c1.canMerge(c3)).to.be.true;
-  });
-
-  it("can merge with another calendar", () => {
-    // Monday + Friday service
-    const c1 = calendar("2017-07-03", "2017-07-14", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-    c1.excludeDays["20170710"] = moment("20170710");
-
-    const c2 = calendar("2017-07-17", "2017-07-28", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-    c2.excludeDays["20170721"] = moment("20170721");
-
-    const c3 = c1.merge(c2);
-
-    chai.expect(c3.runsFrom.isSame(c1.runsFrom)).to.be.true;
-    chai.expect(c3.runsTo.isSame(c2.runsTo)).to.be.true;
-    chai.expect(c3.excludeDays["20170710"]).to.not.be.undefined;
-    chai.expect(c3.excludeDays["20170721"]).to.not.be.undefined;
-  });
-
-  it("can merge with an overlapping calendar", () => {
-    // Monday + Friday service
-    const c1 = calendar("2017-07-03", "2017-07-28", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-    c1.excludeDays["20170717"] = moment("20170717");
-    c1.excludeDays["20170721"] = moment("20170721");
-
-    const c2 = calendar("2017-07-17", "2017-07-28", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-    c2.excludeDays["20170721"] = moment("20170721");
-
-    const c3 = c1.merge(c2);
-
-    chai.expect(c3.runsFrom.isSame(c1.runsFrom)).to.be.true;
-    chai.expect(c3.runsTo.isSame(c1.runsTo)).to.be.true;
-    chai.expect(Object.keys(c3.excludeDays).length).to.equal(1);
-    chai.expect(c3.excludeDays["20170721"]).to.not.be.undefined;
-  });
-
-  it("can bridge the gap between a merging service with exclude days", () => {
-    // Monday + Friday service
-    const c1 = calendar("2017-07-03", "2017-07-14", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-    c1.excludeDays["20170710"] = moment("20170710");
-
-    const c2 = calendar("2017-07-21", "2017-07-28", { 0: 0, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1, 6: 0 });
-    c2.excludeDays["20170721"] = moment("20170721");
-
-    const c3 = c1.merge(c2);
-
-    chai.expect(c3.runsFrom.isSame(c1.runsFrom)).to.be.true;
-    chai.expect(c3.runsTo.isSame(c2.runsTo)).to.be.true;
-    chai.expect(c3.excludeDays["20170710"]).to.not.be.undefined;
-    chai.expect(c3.excludeDays["20170717"]).to.not.be.undefined;
-    chai.expect(c3.excludeDays["20170721"]).to.not.be.undefined;
+    chai.expect(calendars).null;
   });
 
   it("shift forward", () => {

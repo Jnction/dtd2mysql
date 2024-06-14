@@ -1,12 +1,13 @@
 
 import {IdGenerator, OverlayRecord, STP} from "../native/OverlayRecord";
+import {Schedule} from '../native/Schedule';
 import {OverlapType} from "../native/ScheduleCalendar";
 
 /**
  * Index the schedules by TUID, detect overlays and create new schedules as necessary.
  */
-export function applyOverlays(schedules: OverlayRecord[], idGenerator: IdGenerator = getDefaultIdGenerator()): OverlayIndex {
-  const schedulesByTuid: OverlayIndex = {};
+export function applyOverlays<T extends OverlayRecord>(schedules: T[], idGenerator: IdGenerator = getDefaultIdGenerator()): OverlayIndex<T> {
+  const schedulesByTuid: OverlayIndex<T> = {};
 
   for (const schedule of schedules) {
     // for all cancellation or overlays (perms don't overlap)
@@ -45,7 +46,7 @@ function *getDefaultIdGenerator(): IterableIterator<number> {
  *
  * If there is no overlap this Schedule will be returned intact.
  */
-function applyOverlay(base: OverlayRecord, overlay: OverlayRecord, ids: IdGenerator): OverlayRecord | null {
+function applyOverlay<T extends OverlayRecord>(base: T, overlay: T, ids: IdGenerator): T | null {
   const overlap = base.calendar.getOverlap(overlay.calendar);
 
   // if this schedules schedule overlaps it at any point
@@ -59,6 +60,6 @@ function applyOverlay(base: OverlayRecord, overlay: OverlayRecord, ids: IdGenera
 }
 
 
-export type OverlayIndex = {
-  [tuid: string]: OverlayRecord[]
+export type OverlayIndex<T extends OverlayRecord> = {
+  [tuid: string]: T[]
 }
