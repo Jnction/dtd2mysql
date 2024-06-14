@@ -49,7 +49,7 @@ export class ScheduleCalendar {
   /**
    * Add each date in the range as an exclude day
    */
-  public addExcludeDays(overlay: ScheduleCalendar): ScheduleCalendar[] {
+  public addExcludeDays(overlay: ScheduleCalendar): ScheduleCalendar | null {
     const excludeDays = Object.assign({}, this.excludeDays); // clone
 
     for (const sharedDay of this.sharedDays(overlay)) {
@@ -58,7 +58,7 @@ export class ScheduleCalendar {
 
     const calendar = this.clone(this.runsFrom, this.runsTo, NO_DAYS, excludeDays);
 
-    return calendar !== null ? [calendar] : [];
+    return calendar;
   }
 
   /**

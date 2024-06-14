@@ -1,12 +1,10 @@
-
-import {Schedule} from "./Schedule";
-import {NO_DAYS, OverlapType, ScheduleCalendar} from "./ScheduleCalendar";
 import {TIPLOC} from "../file/Stop";
-import {Duration, Moment} from "moment";
-import {IdGenerator, OverlayRecord, STP, TUID} from "./OverlayRecord";
 import {StopTime} from "../file/StopTime";
-import moment = require("moment");
 import {formatDuration} from "./Duration";
+import {IdGenerator, OverlayRecord, STP, TUID} from "./OverlayRecord";
+import {Schedule} from "./Schedule";
+import {ScheduleCalendar} from "./ScheduleCalendar";
+import moment = require("moment");
 
 export class Association implements OverlayRecord {
 
@@ -54,30 +52,10 @@ export class Association implements OverlayRecord {
     const mergedBase = this.mergeSchedules(base, assoc);
     const schedules = mergedBase !== null ? [mergedBase] : [];
 
-    // if the associated train starts running before the association, clone the associated schedule for those dates
-    if (assoc.calendar.runsFrom.isBefore(assocCalendar.runsFrom)) {
-      const before = assoc.calendar.clone(assoc.calendar.runsFrom, assocCalendar.runsFrom.clone().subtract(1, "days"));
-
-      if (before !== null) {
-        schedules.push(assoc.clone(before, idGenerator.next().value));
-      }
-    }
-
-    // if the associated train runs after the association has finished, clone the associated schedule for those dates
-    if (assoc.calendar.runsTo.isAfter(assocCalendar.runsTo)) {
-      const after = assoc.calendar.clone(assocCalendar.runsTo.clone().add(1, "days"), assoc.calendar.runsTo);
-
-      if (after !== null) {
-        schedules.push(assoc.clone(after, idGenerator.next().value));
-      }
-    }
-
-    // for each exclude day of the association
-    for (const excludeDay of Object.values(assocCalendar.excludeDays)) {
-      const excludeCalendar = assoc.calendar.clone(excludeDay, excludeDay);
-      if (excludeCalendar !== null) {
-        schedules.push(assoc.clone(excludeCalendar, idGenerator.next().value));
-      }
+    // exclude the associated schedule from running when the association is active
+    const excludeCalendar = assoc.calendar.addExcludeDays(assocCalendar);
+    if (excludeCalendar !== null) {
+      schedules.push(assoc.clone(excludeCalendar, idGenerator.next().value));
     }
 
     return schedules;
@@ -116,7 +94,14 @@ export class Association implements OverlayRecord {
     }
 
     let stopSequence: number = 1;
-    const tripId = `${tuid}_${moment(this.calendar.runsFrom).format('YYYYMMDD')}_${moment(this.calendar.runsTo).format('YYYYMMDD')}`;
+    const calendar = this.dateIndicator === DateIndicator.Next ? assoc.calendar.shiftBackward() : assoc.calendar;
+
+    const newCalendar = calendar.clone(
+        moment.max(this.calendar.runsFrom, calendar.runsFrom),
+        moment.min(this.calendar.runsTo, calendar.runsTo)
+    );
+    if (newCalendar === null) return null;
+    const tripId = `${tuid}_${moment(newCalendar.runsFrom).format('YYYYMMDD')}_${moment(newCalendar.runsTo).format('YYYYMMDD')}`;
 
     const stops = [
       ...start.map(s => cloneStop(s, stopSequence++, tripId, undefined, false, this.assocType === AssociationType.Split)),
@@ -124,13 +109,7 @@ export class Association implements OverlayRecord {
       ...end.map(s => cloneStop(s, stopSequence++, tripId, assocStop, this.assocType === AssociationType.Join, false))
     ];
 
-    const calendar = this.dateIndicator === DateIndicator.Next ? assoc.calendar.shiftBackward() : assoc.calendar;
-
-    const newCalendar = calendar.clone(
-        moment.max(this.calendar.runsFrom, calendar.runsFrom),
-        moment.min(this.calendar.runsTo, calendar.runsTo)
-    );
-    return newCalendar === null ? null : new Schedule(
+    return new Schedule(
       assoc.id,
       tripId,
       stops,
