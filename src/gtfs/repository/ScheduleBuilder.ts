@@ -189,8 +189,8 @@ export class ScheduleBuilder {
         return result === -1 ? null : result;
       }
       // Sutton (via Mitcham Junction) / Sutton (via Wimbledon)
-      if (stop_code === 'SUO' && atoc_code === 'TL') {
-        const index = findCallingIndex('STE');
+      if (stops[stops.length - 1].stop_code === 'SUO' && atoc_code === 'TL') {
+        const index = findCallingIndex('STE', i);
         const wimbledon = findCallingIndex('WIM');
         const mitcham = findCallingIndex('MIJ');
         if (index !== null) {
