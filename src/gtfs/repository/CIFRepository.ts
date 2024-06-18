@@ -55,9 +55,12 @@ export class CIFRepository {
   private stopById : Map<string, Stop> | undefined;
   public async findStopById(stopId: string) {
     if (this.stopById === undefined) {
-      this.stopById = new Map<string, Stop>();
-      for (const stop of await this.getStops()) {
-        this.stopById.set(stop.stop_id, stop);
+      const stops = await this.getStops();
+      if (this.stopById === undefined) {
+        this.stopById = new Map<string, Stop>();
+        for (const stop of stops) {
+          this.stopById.set(stop.stop_id, stop);
+        }
       }
     }
     return this.stopById!.get(stopId);
