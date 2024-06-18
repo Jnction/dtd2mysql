@@ -1,3 +1,4 @@
+import objectHash = require('object-hash');
 import {AgencyID} from "../file/Agency";
 import {Route, RouteType} from "../file/Route";
 import {Shape} from '../file/Shape';
@@ -35,10 +36,6 @@ export class Schedule implements OverlayRecord {
     return this.stopTimes[this.stopTimes.length - 1].stop_id;
   }
 
-  public get hash(): string {
-    return this.tripId + this.stopTimes.map(s => s.stop_id + s.departure_time + s.arrival_time).join("") + this.calendar.binaryDays;
-  }
-
   /**
    * Clone the current record with the new calendar and id
    */
@@ -69,7 +66,7 @@ export class Schedule implements OverlayRecord {
       trip_headsign: await cifRepository.getStopName(this.destination) ?? this.destination,
       trip_short_name: this.rsid?.substr(0, 6) ?? this.tuid,
       direction_id: 0,
-      shape_id: this.id,
+      shape_id: this.getShapeId(),
       wheelchair_accessible: 1,
       bikes_allowed: 0,
     };
@@ -86,7 +83,7 @@ export class Schedule implements OverlayRecord {
           ?? cifRepository.tiplocCoordinates[stopTime.stop_id.replace(/^9100/, '')];
       if (entry !== undefined && entry.stop_lat !== null && entry.stop_lon !== null) {
         result.push({
-          shape_id: this.id,
+          shape_id: this.getShapeId(),
           shape_pt_lat: entry.stop_lat,
           shape_pt_lon: entry.stop_lon,
           shape_pt_sequence: sequence++,
@@ -94,6 +91,10 @@ export class Schedule implements OverlayRecord {
       }
     }
     return result;
+  }
+
+  public getShapeId(): string {
+    return objectHash(this.stopTimes.map(stopTime => stopTime.stop_id).join('-'));
   }
 
   public getNameAndColour(routeLongName : string) : {name : string, long_name? : string, colour : number | null} {

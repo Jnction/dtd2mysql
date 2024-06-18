@@ -23,10 +23,6 @@ export class Association implements OverlayRecord {
     return this.baseTUID + "_" + this.assocTUID + "_";
   }
 
-  public get hash(): string {
-    return this.tuid + this.assocLocation + this.calendar.binaryDays;
-  }
-
   /**
    * Clone the association with a different calendar
    */

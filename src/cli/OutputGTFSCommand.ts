@@ -14,6 +14,7 @@ import {ScheduleBuilder, ScheduleResults} from "../gtfs/repository/ScheduleBuild
 import {GTFSOutput} from "../gtfs/output/GTFSOutput";
 import * as fs from "fs";
 import streamToPromise = require("stream-to-promise");
+import objectHash = require('object-hash');
 
 export class OutputGTFSCommand implements CLICommand {
   private baseDir: string;
@@ -98,9 +99,10 @@ export class OutputGTFSCommand implements CLICommand {
     const routeFile = this.output.open(this.baseDir + "routes.txt");
     const shapes = this.output.open(this.baseDir + "shapes.txt");
     const routes = {};
+    const writtenShapes = new Set();
 
     function getRouteHash(route : Route) {
-      return `${route.agency_id}_${route.route_type}_${route.route_short_name}_${route.route_long_name}_${route.route_color}_${route.route_text_color}`;
+      return objectHash(`${route.agency_id}_${route.route_type}_${route.route_short_name}_${route.route_long_name}_${route.route_color}_${route.route_text_color}`);
     }
 
     for (const schedule of schedules) {
@@ -124,8 +126,12 @@ export class OutputGTFSCommand implements CLICommand {
             const {stop_code, tiploc_code, ...remaining} = r;
             stopTimes.write(remaining);
           });
-      for (const record of await schedule.toShape(this.repository)) {
-        shapes.write(record);
+      const shapeId = schedule.getShapeId();
+      if (!writtenShapes.has(shapeId)) {
+        writtenShapes.add(shapeId);
+        for (const record of await schedule.toShape(this.repository)) {
+          shapes.write(record);
+        }
       }
     }
 
