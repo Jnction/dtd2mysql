@@ -30,7 +30,7 @@ export class Association implements OverlayRecord {
   /**
    * Clone the association with a different calendar
    */
-  public clone(calendar: ScheduleCalendar, id: number): Association {
+  public clone(calendar: ScheduleCalendar, id: number): this {
     return new Association(
       id,
       this.baseTUID,
@@ -40,7 +40,7 @@ export class Association implements OverlayRecord {
       this.assocType,
       calendar,
       this.stp
-    );
+    ) as this;
   }
 
   /**

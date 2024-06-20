@@ -43,7 +43,7 @@ export class Schedule implements OverlayRecord {
   /**
    * Clone the current record with the new calendar and id
    */
-  public clone(calendar: ScheduleCalendar, scheduleId: number): Schedule {
+  public clone(calendar: ScheduleCalendar, scheduleId: number): this {
     return new Schedule(
       scheduleId,
       this.tripId,
@@ -56,7 +56,7 @@ export class Schedule implements OverlayRecord {
       this.stp,
       this.firstClassAvailable,
       this.reservationPossible
-    );
+    ) as this;
   }
 
   /**
