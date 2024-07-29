@@ -1,13 +1,13 @@
-
-import {StopTime} from "../file/StopTime";
-import {ScheduleCalendar} from "./ScheduleCalendar";
-import {Trip} from "../file/Trip";
-import {Route, RouteType} from "../file/Route";
+import objectHash = require('object-hash');
 import {AgencyID} from "../file/Agency";
-import {AtcoCode, TIPLOC} from "../file/Stop";
+import {Route, RouteType} from "../file/Route";
 import {Shape} from '../file/Shape';
-import {OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
+import {AtcoCode, TIPLOC} from "../file/Stop";
+import {StopTime} from "../file/StopTime";
+import {Trip} from "../file/Trip";
 import {CIFRepository} from '../repository/CIFRepository';
+import {OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
+import {ScheduleCalendar} from "./ScheduleCalendar";
 
 /**
  * A CIF schedule (BS record)
@@ -34,10 +34,6 @@ export class Schedule implements OverlayRecord {
 
   public get destination(): AtcoCode {
     return this.stopTimes[this.stopTimes.length - 1].stop_id;
-  }
-
-  public get hash(): string {
-    return this.tripId + this.stopTimes.map(s => s.stop_id + s.departure_time + s.arrival_time).join("") + this.calendar.binaryDays;
   }
 
   /**
@@ -70,7 +66,7 @@ export class Schedule implements OverlayRecord {
       trip_headsign: await cifRepository.getStopName(this.destination) ?? this.destination,
       trip_short_name: this.rsid?.substr(0, 6) ?? this.tuid,
       direction_id: 0,
-      shape_id: this.id,
+      shape_id: this.getShapeId(),
       wheelchair_accessible: 1,
       bikes_allowed: 0,
     };
@@ -83,17 +79,22 @@ export class Schedule implements OverlayRecord {
     const result : Shape[] = [];
     let sequence = 0;
     for (const stopTime of this.stopTimes) {
-      const stop = await cifRepository.findStopById(stopTime.stop_id);
-      if (stop !== undefined && stop.stop_lat !== null && stop.stop_lon !== null) {
+      const entry = await cifRepository.findStopById(stopTime.stop_id)
+          ?? cifRepository.tiplocCoordinates[stopTime.stop_id.replace(/^9100/, '')];
+      if (entry !== undefined && entry.stop_lat !== null && entry.stop_lon !== null) {
         result.push({
-          shape_id: this.id,
-          shape_pt_lat: stop.stop_lat,
-          shape_pt_lon: stop.stop_lon,
+          shape_id: this.getShapeId(),
+          shape_pt_lat: entry.stop_lat,
+          shape_pt_lon: entry.stop_lon,
           shape_pt_sequence: sequence++,
-        })
+        });
       }
     }
     return result;
+  }
+
+  public getShapeId(): string {
+    return objectHash(this.stopTimes.map(stopTime => stopTime.stop_id).join('-'));
   }
 
   public getNameAndColour(routeLongName : string) : {name : string, long_name? : string, colour : number | null} {

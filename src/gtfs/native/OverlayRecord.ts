@@ -5,7 +5,6 @@ export interface OverlayRecord {
   stp: STP;
   id: number;
   tuid: TUID;
-  hash: string;
 
   clone(calendar: ScheduleCalendar, scheduleId: number): this;
 }

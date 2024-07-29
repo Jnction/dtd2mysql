@@ -22,7 +22,8 @@ export class CIFRepository {
   constructor(
     private readonly db: DatabaseConnection,
     private readonly stream: Pool,
-    public stationCoordinates: StationCoordinates
+    public stationCoordinates: StationCoordinates,
+    public tiplocCoordinates: TiplocCoordiates = {}
   ) {
     proj4.defs('EPSG:27700', '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs');
   }
@@ -54,9 +55,12 @@ export class CIFRepository {
   private stopById : Map<string, Stop> | undefined;
   public async findStopById(stopId: string) {
     if (this.stopById === undefined) {
-      this.stopById = new Map<string, Stop>();
-      for (const stop of await this.getStops()) {
-        this.stopById.set(stop.stop_id, stop);
+      const stops = await this.getStops();
+      if (this.stopById === undefined) {
+        this.stopById = new Map<string, Stop>();
+        for (const stop of stops) {
+          this.stopById.set(stop.stop_id, stop);
+        }
       }
     }
     return this.stopById!.get(stopId);
@@ -87,7 +91,9 @@ export class CIFRepository {
   identified by its minor CRS code and the platform number, associated to the station with the main CRS code.
    */
   private stops : Promise<Stop[]> = (async () => {
-    const [results] = await this.db.query<Omit<Stop, 'stop_lat' | 'stop_lon'> & {easting : number, northing : number}>(`
+    const [results] = await this.db.query<
+      Omit<Stop, 'stop_lat' | 'stop_lon'> & {easting : number, northing : number, tiploc_code : string}
+    >(`
       SELECT -- select all the physical stations
         CONCAT('910G', tiploc_code) AS stop_id, -- using the ATCO code as the stop ID
         crs_code AS stop_code, -- and the main CRS code as the public facing code
@@ -101,7 +107,8 @@ export class CIFRepository {
         0 AS wheelchair_boarding,
         NULL AS platform_code,
         easting,
-        northing
+        northing,
+        tiploc_code
       FROM physical_station WHERE crs_code IS NOT NULL AND cate_interchange_status <> 9 -- from the main part of the station
       UNION SELECT -- and select all the platforms where scheduled services call at
         CONCAT('9100', physical_station.tiploc_code, IFNULL(platform, '')) AS stop_id, -- using the ATCO code with the platform number as the stop ID
@@ -116,7 +123,8 @@ export class CIFRepository {
         0 AS wheelchair_boarding,
         platform AS platform_code,
         easting,
-        northing
+        northing,
+        physical_station.tiploc_code
       FROM physical_station
         INNER JOIN (
           SELECT DISTINCT
@@ -139,10 +147,12 @@ export class CIFRepository {
     // overlay the long and latitude values from configuration
     return results.map(row => {
       const [stop_lon, stop_lat] = proj4('EPSG:27700', 'EPSG:4326', [(row.easting - 10000) * 100, (row.northing - 60000) * 100]);
-      const {easting, northing, ...stop} = {...row, stop_lon, stop_lat};
+      const {easting, northing, tiploc_code, ...stop} = {...row, stop_lon, stop_lat};
+      const tiploc_entry = this.tiplocCoordinates[tiploc_code];
       const station_data =
           this.stationCoordinates[stop.stop_code]
-          ?? this.stationCoordinates[results.find(parent_stop => parent_stop.stop_id === stop.parent_station)?.stop_code ?? ''];
+          ?? this.stationCoordinates[results.find(parent_stop => parent_stop.stop_id === stop.parent_station)?.stop_code ?? '']
+          ?? tiploc_entry
       if (stop.location_type === 0) {
         const platform_code = stop.platform_code;
         if (platform_code) {
@@ -163,7 +173,7 @@ export class CIFRepository {
           return stop;
         }
       } else {
-        const result = Object.assign(stop, this.stationCoordinates[stop.stop_code])
+        const result = Object.assign(stop, station_data);
         delete result['platforms'];
         return result;
       }
@@ -195,7 +205,7 @@ export class CIFRepository {
           platform, atoc_code, stop_time.id AS stop_id, activity, reservations, train_class
         FROM schedule
         LEFT JOIN schedule_extra ON schedule.id = schedule_extra.schedule
-        LEFT JOIN (stop_time JOIN physical_station ps ON location = ps.tiploc_code) ON schedule.id = stop_time.schedule
+        LEFT JOIN (stop_time LEFT JOIN physical_station ps ON location = ps.tiploc_code) ON schedule.id = stop_time.schedule
         WHERE runs_from < CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_END} DAY
         AND runs_to >= CURDATE() + INTERVAL ${CIFRepository.DATE_OFFSET_START} DAY
         AND (IF(train_status='S', 'SS', ifnull(train_category, '')) NOT IN ('OL', 'SS', 'BS'))
@@ -361,7 +371,7 @@ export interface ScheduleStopTimeRow {
 }
 
 export type StationCoordinates = {
-  [crs: string]: {
+  [crs: CRS]: {
     stop_lat: number,
     stop_lon: number,
     stop_name: string,
@@ -370,6 +380,14 @@ export type StationCoordinates = {
     platforms?: {[key : string] : StationCoordinates}
   }
 };
+
+export type TiplocCoordiates = {
+  [tiploc: TIPLOC]: {
+    stop_lat: number,
+    stop_lon: number,
+    stop_name: string,
+  }
+}
 
 interface AssociationRow {
   id: number;

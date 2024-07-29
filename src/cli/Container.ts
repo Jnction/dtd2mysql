@@ -1,5 +1,8 @@
+import appRootPath = require('app-root-path');
+import * as csvParse from 'csv-parse/sync';
 import * as memoize from "memoized-class-decorator";
 import {Pool} from 'mysql2';
+import * as fs from 'node:fs';
 import {CLICommand} from "./CLICommand";
 import {ImportFeedCommand} from "./ImportFeedCommand";
 import {DatabaseConfiguration, DatabaseConnection} from "../database/DatabaseConnection";
@@ -7,7 +10,7 @@ import config from "../../config";
 import {CleanFaresCommand} from "./CleanFaresCommand";
 import {ShowHelpCommand} from "./ShowHelpCommand";
 import {OutputGTFSCommand} from "./OutputGTFSCommand";
-import {CIFRepository} from "../gtfs/repository/CIFRepository";
+import {CIFRepository, TiplocCoordiates} from "../gtfs/repository/CIFRepository";
 import {stationCoordinates} from "../../config/gtfs/station-coordinates";
 import {FileOutput} from "../gtfs/output/FileOutput";
 import {GTFSOutput} from "../gtfs/output/GTFSOutput";
@@ -18,6 +21,7 @@ import {GTFSImportCommand} from "./GTFSImportCommand";
 import {downloadUrl} from "../../config/nfm64";
 import {DownloadFileCommand} from "./DownloadFileCommand";
 import {PromiseSFTP} from "../sftp/PromiseSFTP";
+import {Stop, TIPLOC} from "../gtfs/file/Stop";
 
 export class Container {
 
@@ -86,7 +90,8 @@ export class Container {
       new CIFRepository(
         this.getDatabaseConnection(),
         this.getDatabaseStream(),
-        stationCoordinates
+        stationCoordinates,
+        this.getTiplocCoordinates() ?? undefined
       ),
       output
     );
@@ -195,4 +200,29 @@ export class Container {
     };
   }
 
+  private getTiplocCoordinates() : TiplocCoordiates | null {
+    const tiplocFilePath = `${appRootPath}/tiplocs.csv`;
+    const records = fs.existsSync(tiplocFilePath)
+      ? csvParse.parse(
+        fs.readFileSync(tiplocFilePath, {encoding: 'utf8'}).replace(/^\uFEFF/, ''),
+        {
+          columns: true,
+          cast: (value, context) => ['stop_lon', 'stop_lat', 'easting', 'northing'].includes(String(context.column))
+            ? value === '' ? null : Number(value)
+            : value
+        }
+      )
+      : null;
+    if (records === null) return null;
+    const result : TiplocCoordiates = {};
+    for (const item of records) {
+      if (item.stop_lat !== null && item.stop_lon !== null)
+      result[item.stop_id] = {
+        stop_name: item.stop_name,
+        stop_lat: item.stop_lat,
+        stop_lon: item.stop_lon,
+      };
+    }
+    return result;
+  }
 }

@@ -135,3 +135,5 @@ If you would like to send a pull request please write your contribution in TypeS
 This software is licensed under [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 Copyright 2017 Linus Norton.
+
+tiplocs.csv is derived from https://github.com/oweno-tfwm/YA_Tiploc_List under the same licence. 
