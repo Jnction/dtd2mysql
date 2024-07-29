@@ -13,6 +13,7 @@ import {createCalendar, ServiceIdIndex} from "../gtfs/command/CreateCalendar";
 import {ScheduleBuilder, ScheduleResults} from "../gtfs/repository/ScheduleBuilder";
 import {GTFSOutput} from "../gtfs/output/GTFSOutput";
 import * as fs from "fs";
+import {addLateNightServices} from "../gtfs/command/AddLateNightServices";
 import streamToPromise = require("stream-to-promise");
 import objectHash = require('object-hash');
 
@@ -120,7 +121,7 @@ export class OutputGTFSCommand implements CLICommand {
       trips.write(await schedule.toTrip(serviceId, routeId, this.repository));
       schedule.stopTimes.filter(r =>
           r.stop_code !== null // filter out technical stops at non-station
-          && (r.departure_time !== null || r.arrival_time !== null) // filter out passes
+          && (r.pickup_type !== 1 || r.drop_off_type !== 1) // filter out non-passenger stops
       )
           .forEach(r => {
             const {stop_code, tiploc_code, ...remaining} = r;
@@ -158,8 +159,9 @@ export class OutputGTFSCommand implements CLICommand {
     const associatedSchedules = applyAssociations(processedSchedules, processedAssociations, scheduleResults.idGenerator);
     const mergedSchedules = <Schedule[]>mergeSchedules(associatedSchedules);
     await Promise.all(mergedSchedules.map(schedule => ScheduleBuilder.fillStopHeadsigns(schedule, this.repository)));
+    const schedules = addLateNightServices(mergedSchedules, scheduleResults.idGenerator);
 
-    return mergedSchedules;
+    return schedules;
   }
 
 }
