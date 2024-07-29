@@ -83,7 +83,8 @@ export class CIFRepository {
   however the 3 remaining parts (Midland, Thameslink and High Speed Domestic) are the same station.
 
   The stop list will return one entry for each station (not its constituent parts) as a GTFS station identified by its main CRS code,
-  and one entry for each platform as a GTFS stop identified by its minor CRS code and the platform number, associated to the station with the main CRS code.
+  and one entry for each TIPLOC (for unknown platform number) and each platform as a GTFS stop
+  identified by its minor CRS code and the platform number, associated to the station with the main CRS code.
    */
   private stops : Promise<Stop[]> = (async () => {
     const [results] = await this.db.query<Omit<Stop, 'stop_lat' | 'stop_lon'> & {easting : number, northing : number}>(`
@@ -118,9 +119,21 @@ export class CIFRepository {
         northing
       FROM physical_station
         INNER JOIN (
-          SELECT DISTINCT location AS tiploc_code, cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, platform FROM stop_time
+          SELECT DISTINCT
+            location AS tiploc_code, 
+            cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code, 
+            platform 
+          FROM stop_time
+          UNION SELECT DISTINCT 
+            tiploc_code,
+            cast(NULL AS CHAR(3)) COLLATE utf8mb4_unicode_ci AS crs_code,
+            NULL as platform
+          FROM physical_station WHERE crs_code IS NOT NULL
         ) platforms ON physical_station.tiploc_code = platforms.tiploc_code OR (physical_station.crs_code = platforms.crs_code AND physical_station.cate_interchange_status <> 9)
-      WHERE physical_station.crs_code IS NOT NULL
+      -- ANSL3 is a tiploc code representing the track leading to platform 3 of Anniesland
+      -- The ATCO generation will then clash with the platform 3 at the TIPLOC ANSL, which represents the whole of Anniesland station
+      -- The schedule data uses ANSL for trains starting from platform 3, refer to ScotRail Mo-Fr 18:03 service from Anniesland to Glasgow Queen Street for details
+      WHERE physical_station.crs_code IS NOT NULL AND physical_station.tiploc_code <> 'ANSL3'
     `);
 
     // overlay the long and latitude values from configuration
