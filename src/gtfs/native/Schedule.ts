@@ -162,23 +162,23 @@ export class Schedule implements OverlayRecord {
     if (prefix === 'LO') {
       const callback = this.stopAt.bind(this);
       if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
-        return {name : 'Windrush', colour : 0xEF4D5E};
+        return {name : 'Windrush line', colour : 0xEF4D5E};
       }
       if (['LST', 'HAC', 'SVS', 'ENF', 'CHN', 'CHI'].some(callback)) {
-        return {name : 'Weaver', colour : 0x972861};
+        return {name : 'Weaver line', colour : 0x972861};
       }
       if (['RMF', 'UPM'].some(callback)) {
-        return {name : 'Liberty', colour : 0x676767};
+        return {name : 'Liberty line', colour : 0x676767};
       }
       if (['CLJ', 'KPA', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
-        return {name : 'Mildmay', colour : 0x437EC1};
+        return {name : 'Mildmay line', colour : 0x437EC1};
       }
       // Lioness need to place below Mildmay for correct through service names
       if (['EUS', 'KBN', 'SBP', 'HRW', 'WFH', 'WFJ'].some(callback)) {
-        return {name : 'Lioness', colour : 0xF1B41C};
+        return {name : 'Lioness line', colour : 0xF1B41C};
       }
       if (['HRY', 'WMW', 'LER', 'BKG'].some(callback)) {
-        return {name : 'Suffragette', colour : 0x39B97A};
+        return {name : 'Suffragette line', colour : 0x39B97A};
       }
     }
     // fixme: should I handle line names of Merseyrail
