@@ -103,18 +103,19 @@ export class ScheduleBuilder {
   }
 
   private createStop(row: ScheduleStopTimeRow, stopId: number, departHour: number): StopTime {
-    let arrivalTime, departureTime;
+    let arrivalTime : string | null = null;
+    let departureTime : string | null = null;
 
     // if either public time is set, use those
     if (row.public_arrival_time || row.public_departure_time) {
       arrivalTime = this.formatTime(row.public_arrival_time, departHour);
       departureTime = this.formatTime(row.public_departure_time, departHour);
     }
-    // if no public time at all (no set down or pick) use the scheduled time
-    else {
-      arrivalTime = this.formatTime(row.scheduled_arrival_time, departHour);
-      departureTime = this.formatTime(row.scheduled_departure_time, departHour);
-    }
+    // // if no public time at all (no set down or pick) use the scheduled time
+    // else {
+    //   arrivalTime = this.formatTime(row.scheduled_arrival_time, departHour);
+    //   departureTime = this.formatTime(row.scheduled_departure_time, departHour);
+    // }
 
     const activities = (row.activity ?? '').match(/.{1,2}/g) || [] as string[];
     const pickup = pickupActivities.find(a => activities.includes(a)) && !activities.includes(notAdvertised) ? 0 : 1;
@@ -123,8 +124,8 @@ export class ScheduleBuilder {
 
     return {
       trip_id: this.getTripId(row),
-      arrival_time: (arrivalTime || departureTime),
-      departure_time: (departureTime || arrivalTime),
+      arrival_time: arrivalTime,
+      departure_time: departureTime,
       stop_id: row.atco_code,
       stop_code: row.crs_code,
       tiploc_code: row.location,
