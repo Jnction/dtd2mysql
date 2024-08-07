@@ -166,6 +166,8 @@ export class ScheduleBuilder {
   }
 
   public static async fillStopHeadsigns(schedule : Schedule, repository : CIFRepository) : Promise<void> {
+    // TODO: use the Darwin timetable reference to generate "via points" instead of hardcoding here 
+    // False destinations still have to be hardcoded
     const atoc_code = schedule.operator;
     const stops = schedule.stopTimes;
     if (stops.length === 0) return;
