@@ -2,7 +2,7 @@ import objectHash = require('object-hash');
 import {AgencyID} from "../file/Agency";
 import {Route, RouteType} from "../file/Route";
 import {Shape} from '../file/Shape';
-import {AtcoCode, TIPLOC} from "../file/Stop";
+import {AtcoCode, CRS, TIPLOC} from "../file/Stop";
 import {StopTime} from "../file/StopTime";
 import {Trip} from "../file/Trip";
 import {CIFRepository} from '../repository/CIFRepository';
@@ -160,7 +160,7 @@ export class Schedule implements OverlayRecord {
     }
 
     if (prefix === 'LO') {
-      const callback = this.stopAt.bind(this);
+      const callback = this.stopAtStation.bind(this);
       if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
         return {name : 'Windrush line', colour : 0xEF4D5E};
       }
@@ -236,5 +236,9 @@ export class Schedule implements OverlayRecord {
 
   public stopAt(location: TIPLOC): StopTime | undefined {
     return <StopTime>this.stopTimes.find(s => s.tiploc_code === location);
+  }
+  
+  public stopAtStation(station: CRS): StopTime | undefined {
+    return <StopTime>this.stopTimes.find(s => s.stop_code === station);
   }
 }
