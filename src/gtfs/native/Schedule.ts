@@ -173,7 +173,7 @@ export class Schedule implements OverlayRecord {
       if (['CLJ', 'KPA', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
         return {name : 'Mildmay line', colour : 0x437EC1};
       }
-      // Lioness need to place below Mildmay for correct through service names
+      // I am considering Stratford - Willesden / Watford through-running services to be Mildmay line here
       if (['EUS', 'KBN', 'SBP', 'HRW', 'WFH', 'WFJ'].some(callback)) {
         return {name : 'Lioness line', colour : 0xF1B41C};
       }
