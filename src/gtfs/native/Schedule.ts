@@ -170,7 +170,7 @@ export class Schedule implements OverlayRecord {
       if (['RMF', 'UPM'].some(callback)) {
         return {name : 'Liberty line', colour : 0x676767};
       }
-      if (['CLJ', 'KPA', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
+      if (['KPA', 'SPB', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
         return {name : 'Mildmay line', colour : 0x437EC1};
       }
       // I am considering Stratford - Willesden / Watford through-running services to be Mildmay line here
