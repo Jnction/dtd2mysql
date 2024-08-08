@@ -133,7 +133,7 @@ describe("Association", () => {
     chai.expect(result.stopTimes[1].stop_sequence).to.equal(2);
     chai.expect(result.stopTimes[2].stop_id).to.equal("ASH");
     chai.expect(result.stopTimes[2].stop_sequence).to.equal(3);
-    chai.expect(result.stopTimes[2].arrival_time).to.equal(null);
+    chai.expect(result.stopTimes[2].arrival_time).to.equal("24:35:30");
     chai.expect(result.stopTimes[2].departure_time).to.equal("24:35:30");
     chai.expect(result.stopTimes[3].stop_id).to.equal("DOV");
     chai.expect(result.stopTimes[3].stop_sequence).to.equal(4);

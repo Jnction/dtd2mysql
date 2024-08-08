@@ -15,7 +15,8 @@ export function addLateNightServices(schedules: Schedule[], idGenerator: IdGener
   const result: Schedule[] = [];
 
   for (const schedule of schedules) {
-    const departureHour = parseInt(schedule.stopTimes[0].departure_time!.substr(0, 2), 10);
+    // some trains start at an unadvertised stop - we assume that the departure hour is at the first public call
+    const departureHour = parseInt(schedule.stopTimes.find(s => s.departure_time != null)!.departure_time!.substr(0, 2), 10);
 
     if (departureHour <= 1) {
       const newSchedule = schedule.clone(schedule.calendar.shiftBackward(), idGenerator.next().value);

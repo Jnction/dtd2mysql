@@ -120,12 +120,12 @@ export class ScheduleBuilder {
     const activities = (row.activity ?? '').match(/.{1,2}/g) || [] as string[];
     const pickup = pickupActivities.find(a => activities.includes(a)) && !activities.includes(notAdvertised) ? 0 : 1;
     const coordinatedDropOff = coordinatedActivity.find(a => activities.includes(a)) ? 3 : 0;
-    const dropOff = dropOffActivities.find(a => activities.includes(a)) ? 0 : 1;
+    const dropOff = dropOffActivities.find(a => activities.includes(a)) && !activities.includes(notAdvertised) ? 0 : 1;
 
     return {
       trip_id: this.getTripId(row),
-      arrival_time: arrivalTime,
-      departure_time: departureTime,
+      arrival_time: activities.includes(notAdvertised) ? null : arrivalTime || departureTime,
+      departure_time: activities.includes(notAdvertised) ? null : departureTime || arrivalTime,
       stop_id: row.atco_code,
       stop_code: row.crs_code,
       tiploc_code: row.location,
