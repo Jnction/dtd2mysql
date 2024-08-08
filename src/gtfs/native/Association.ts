@@ -3,7 +3,7 @@ import {StopTime} from "../file/StopTime";
 import {formatDuration} from "./Duration";
 import {IdGenerator, OverlayRecord, STP, TUID} from "./OverlayRecord";
 import {Schedule} from "./Schedule";
-import {ScheduleCalendar} from "./ScheduleCalendar";
+import {NO_DAYS, ScheduleCalendar} from "./ScheduleCalendar";
 import moment = require("moment");
 
 export class Association implements OverlayRecord {
@@ -94,7 +94,9 @@ export class Association implements OverlayRecord {
 
     const newCalendar = calendar.clone(
         moment.max(this.calendar.runsFrom, calendar.runsFrom),
-        moment.min(this.calendar.runsTo, calendar.runsTo)
+        moment.min(this.calendar.runsTo, calendar.runsTo),
+        NO_DAYS,
+        {...calendar.excludeDays, ...this.calendar.excludeDays}
     );
     if (newCalendar === null) return null;
     const tripId = `${tuid}_${moment(newCalendar.runsFrom).format('YYYYMMDD')}_${moment(newCalendar.runsTo).format('YYYYMMDD')}`;
