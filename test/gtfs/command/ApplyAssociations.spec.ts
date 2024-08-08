@@ -58,10 +58,10 @@ describe("ApplyAssociations", () => {
     chai.expect(result1.stopTimes[1].stop_sequence).to.equal(2);
     chai.expect(result1.stopTimes[2].stop_id).to.equal("ASH");
     chai.expect(result1.stopTimes[2].stop_sequence).to.equal(3);
-    chai.expect(result1.stopTimes[2].departure_time).to.equal("24:35:00");
+    chai.expect(result1.stopTimes[2].departure_time).to.equal("24:35:30");
     chai.expect(result1.stopTimes[3].stop_id).to.equal("DOV");
     chai.expect(result1.stopTimes[3].stop_sequence).to.equal(4);
-    chai.expect(result1.stopTimes[3].departure_time).to.equal("25:00:00");
+    chai.expect(result1.stopTimes[3].departure_time).to.equal("25:00:30");
     chai.expect(result2.tuid).to.equal("A_B");
     chai.expect(result2.calendar.runsFrom.isSame("2017-07-11")).to.be.true;
     chai.expect(result2.calendar.runsTo.isSame("2017-07-11")).to.be.true;
@@ -69,13 +69,13 @@ describe("ApplyAssociations", () => {
     chai.expect(result2.stopTimes[0].stop_sequence).to.equal(1);
     chai.expect(result2.stopTimes[1].stop_id).to.equal("ASH");
     chai.expect(result2.stopTimes[1].stop_sequence).to.equal(2);
-    chai.expect(result2.stopTimes[1].departure_time).to.equal("24:35:00");
+    chai.expect(result2.stopTimes[1].departure_time).to.equal("24:35:30");
     chai.expect(result2.stopTimes[2].stop_id).to.equal("DOV");
     chai.expect(result2.stopTimes[2].stop_sequence).to.equal(3);
-    chai.expect(result2.stopTimes[2].departure_time).to.equal("25:00:00");
+    chai.expect(result2.stopTimes[2].departure_time).to.equal("25:00:30");
     chai.expect(result2.stopTimes[3].stop_id).to.equal("SEA");
     chai.expect(result2.stopTimes[3].stop_sequence).to.equal(4);
-    chai.expect(result2.stopTimes[3].departure_time).to.equal("25:30:00");
+    chai.expect(result2.stopTimes[3].departure_time).to.equal("25:30:30");
     chai.expect(other).to.be.undefined;
   });
 
