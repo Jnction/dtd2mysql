@@ -195,7 +195,7 @@ export class Schedule implements OverlayRecord {
     const nameAndColour = this.getNameAndColour(`${origin} → ${destination}`);
     return {
       route_id: this.id,
-      agency_id: this.operator || "ZZ",
+      agency_id: `=${this.operator || "ZZ"}`,
       route_short_name: nameAndColour.name,
       route_long_name: nameAndColour.long_name ?? null,
       route_type: this.mode,
