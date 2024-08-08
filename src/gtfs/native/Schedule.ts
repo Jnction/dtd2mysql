@@ -69,6 +69,7 @@ export class Schedule implements OverlayRecord {
       shape_id: this.getShapeId(),
       wheelchair_accessible: 1,
       bikes_allowed: 0,
+      original_trip_id: this.tuid,
     };
   }
 
