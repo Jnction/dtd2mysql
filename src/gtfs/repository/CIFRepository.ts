@@ -389,6 +389,17 @@ export type TiplocCoordiates = {
   }
 }
 
+export type ViaText = {
+  [crs: CRS]: {
+    At: CRS,
+    Dest: TIPLOC,
+    Loc1: TIPLOC | null,
+    Loc2: TIPLOC | null,
+    Viatext: string
+  }[]
+};
+
+
 interface AssociationRow {
   id: number;
   base_uid: string;
