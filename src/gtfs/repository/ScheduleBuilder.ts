@@ -401,7 +401,9 @@ export class ScheduleBuilder {
       const false_destination_index = getFalseDestinationIndex();
       const false_destination = false_destination_index === null ? null : await repository.getStopName(stops[false_destination_index].stop_id);
 
-      const via_tiplocs = stops.slice(i + 1, false_destination_index ?? -1).map(s => s.tiploc_code);
+      const via_tiplocs = stops.slice(i + 1, false_destination_index ?? -1)
+          .filter(s => s.arrival_time !== null)
+          .map(s => s.tiploc_code)
 
       const via = viaText[stop_code]?.reduce(
         // The wiki says that:
