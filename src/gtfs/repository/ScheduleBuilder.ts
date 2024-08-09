@@ -353,6 +353,38 @@ export class ScheduleBuilder {
             false_destination ??= 'Folkestone West';
           }
         }
+        
+        if (atoc_code === 'ME') {
+          // Wirral line
+          const moorfields = findCallingIndex('MRF');
+          const liverpool_central = findCallingIndex('LVC');
+          if (moorfields !== null && liverpool_central !== null && moorfields < liverpool_central) {
+            return 'Liverpool Central';
+          }
+        }
+        
+        if (atoc_code === 'AW') {
+          // Merthyr line
+          const cardiff_central = findCallingIndex('CDF');
+          if (cardiff_central !== null) {
+            const radyr = findCallingIndex('RDR', cardiff_central);
+            if (radyr !== null) {
+              return 'Cardiff Central';
+            }
+          }
+        }
+
+        {
+          const huddersfield = findCallingIndex('HUD', i);
+          if (huddersfield !== null) {
+            const brighouse = findCallingIndex('BGH', huddersfield);
+            if (brighouse !== null) {
+              if (findCallingIndex('HUD', brighouse) /* again */) {
+                return 'Brighouse';
+              }
+            }
+          }
+        }
         return false_destination;
       }
 
