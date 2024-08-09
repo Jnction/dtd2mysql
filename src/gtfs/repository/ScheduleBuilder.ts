@@ -168,8 +168,6 @@ export class ScheduleBuilder {
 
   public static async fillStopHeadsigns(schedule : Schedule, repository : CIFRepository) : Promise<void> {
     // use the Darwin timetable reference to generate "via points" 
-    // False destinations still have to be hardcoded currently
-    // TODO: guess false destinations from Darwin timetable data instead of hardcoding them
     const atoc_code = schedule.operator;
     const stops = schedule.stopTimes;
     if (stops.length === 0) return;
@@ -177,11 +175,8 @@ export class ScheduleBuilder {
     const destination_id = stops[stops.length - 1].stop_id;
     const destination_tiploc = stops[stops.length - 1].tiploc_code;
     const destination_name = await repository.getStopName(destination_id);
-
+    
     for (let i = 0; i < stops.length; ++i) {
-      const stop = stops[i];
-      const stop_code = stop.stop_code ?? '';
-      const remaining_tiplocs = stops.slice(i + 1).map(s => s.tiploc_code);
 
       /**
        * Find the index of first call in the stop list after the current stop
@@ -195,161 +190,178 @@ export class ScheduleBuilder {
         return result === -1 ? null : result;
       }
 
-      // https://www.railforums.co.uk/threads/services-advertised-as-terminating-at-penultimate-station.252431/post-6453655
-      if (atoc_code === 'SW') {
-        const strawberry_hill = findCallingIndex('STW');
-        const twickenham = findCallingIndex('TWI');
-        const richmond = findCallingIndex('RMD');
-        const hounslow = findCallingIndex('HOU');
-        const chiswick = findCallingIndex('CHK');
-        const kingston = findCallingIndex('KNG');
-        const teddington = findCallingIndex('TED');
-        const staines = findCallingIndex('SNS');
-        const wimbledon = findCallingIndex('WIM');
-        const barnes_bridge = findCallingIndex('BNI');
-        const brentford = findCallingIndex('BFD');
-        const mortlake = findCallingIndex('MTL');
-        const barnes = findCallingIndex('BNS');
-        const addlestone = findCallingIndex('ASN');
+      // False destinations still have to be hardcoded currently
+      // TODO: guess false destinations from Darwin timetable data instead of hardcoding them
+      function getFalseDestination() {
+        let false_destination : string | null = null;
 
-        // Kingston loop clockwise
-        if (['WAT', 'VXH', 'CLJ'].includes(stop_code) && wimbledon !== null && strawberry_hill !== null && wimbledon < strawberry_hill && staines === null) {
-          stop.stop_headsign ??= 'Strawberry Hill';
-        }
-        if (kingston !== null && richmond !== null && kingston < richmond) {
-          stop.stop_headsign ??= 'Richmond';
-        }
-        if (kingston !== null && chiswick !== null && kingston < chiswick) {
-          stop.stop_headsign ??= 'Chiswick';
+        // https://www.railforums.co.uk/threads/services-advertised-as-terminating-at-penultimate-station.252431/post-6453655
+        if (atoc_code === 'SW') {
+          const strawberry_hill = findCallingIndex('STW');
+          const twickenham = findCallingIndex('TWI');
+          const richmond = findCallingIndex('RMD');
+          const hounslow = findCallingIndex('HOU');
+          const chiswick = findCallingIndex('CHK');
+          const kingston = findCallingIndex('KNG');
+          const teddington = findCallingIndex('TED');
+          const staines = findCallingIndex('SNS');
+          const wimbledon = findCallingIndex('WIM');
+          const barnes_bridge = findCallingIndex('BNI');
+          const brentford = findCallingIndex('BFD');
+          const mortlake = findCallingIndex('MTL');
+          const barnes = findCallingIndex('BNS');
+          const addlestone = findCallingIndex('ASN');
+
+          // Kingston loop clockwise
+          if (
+              ['WAT', 'VXH', 'CLJ'].includes(stop_code)
+              && wimbledon !== null && strawberry_hill !== null && wimbledon < strawberry_hill && staines === null
+          ) {
+            false_destination ??= 'Strawberry Hill';
+          }
+          if (kingston !== null && richmond !== null && kingston < richmond) {
+            false_destination ??= 'Richmond';
+          }
+          if (kingston !== null && chiswick !== null && kingston < chiswick) {
+            false_destination ??= 'Chiswick';
+          }
+
+          // Kingston loop anti-clockwise
+          if (
+              ['WAT', 'VXH', 'QRB', 'CLJ'].includes(stop_code)
+              && teddington !== null && strawberry_hill !== null && twickenham !== null && twickenham < strawberry_hill
+          ) {
+            false_destination ??= 'Teddington';
+          }
+          if (wimbledon !== null && (
+              twickenham !== null && twickenham < wimbledon || stop_code === 'TWI'
+          )) {
+            false_destination ??= 'Wimbledon';
+          }
+
+          // Hounslow loop clockwise
+          if (
+              hounslow !== null && richmond !== null && richmond < hounslow 
+              && ['WAT', 'VXH', 'QRB', 'CLJ', 'WNT', 'PUT', 'BNS'].includes(stop_code)
+          ) {
+            false_destination ??= 'Hounslow';
+          }
+          if (chiswick !== null && (stop_code === 'TWI' || twickenham !== null && twickenham < chiswick)) {
+            false_destination ??= 'Chiswick';
+          }
+          if (stop_code === 'WTN' && barnes_bridge !== null) {
+            false_destination ??= 'Barnes Bridge';
+          }
+
+          // Hounslow loop anti-clockwise
+          if (hounslow !== null && brentford !== null && brentford < hounslow && staines === null) {
+            false_destination ??= 'Hounslow';
+          }
+          if (hounslow !== null && mortlake !== null && hounslow < mortlake) {
+            false_destination ??= 'Mortlake';
+          }
+
+          // Weybridge (via Hounslow) service
+          if (stop_code === 'WAT' && addlestone !== null) {
+            false_destination ??= 'Addlestone';
+          }
+          if (addlestone !== null && barnes !== null && addlestone < barnes) {
+            false_destination ??= 'Barnes';
+          }
         }
 
-        // Kingston loop anti-clockwise
-        if (['WAT', 'VXH', 'QRB', 'CLJ'].includes(stop_code) && teddington !== null && strawberry_hill !== null && twickenham !== null && twickenham < strawberry_hill) {
-          stop.stop_headsign ??= 'Teddington';
-        }
-        if (wimbledon !== null && (twickenham !== null && twickenham < wimbledon || stop_code === 'TWI')) {
-          stop.stop_headsign ??= 'Wimbledon';
-        }
+        if (atoc_code === 'SE') {
+          const dartford = findCallingIndex('DFD');
+          const woolwich = findCallingIndex('WWA');
+          const bexleyheath = findCallingIndex('BXH');
+          const sidcup = findCallingIndex('SID');
+          const slade_green = findCallingIndex('SGR');
+          const eltham = findCallingIndex('ELW');
+          const crayford = findCallingIndex('CRY');
+          const barnehurst = findCallingIndex('BNH');
 
+          // rounder via Woolwich first
+          if (woolwich !== null && slade_green !== null && woolwich < slade_green && dartford === null) {
+            false_destination ??= 'Slade Green';
+          }
+          if (slade_green !== null && eltham !== null && slade_green < eltham) {
+            false_destination ??= 'Eltham';
+          }
+          if (slade_green !== null && sidcup !== null && slade_green < sidcup) {
+            false_destination ??= 'Sidcup';
+          }
 
-        // Hounslow loop clockwise
-        if (hounslow !== null && richmond !== null && richmond < hounslow && ['WAT', 'VXH', 'QRB', 'CLJ', 'WNT', 'PUT', 'BNS'].includes(stop_code)) {
-          stop.stop_headsign ??= 'Hounslow';
-        }
-        if (chiswick !== null && (stop_code === 'TWI' || twickenham !== null && twickenham < chiswick)) {
-          stop.stop_headsign ??= 'Chiswick';
-        }
-        if (stop_code === 'WTN' && barnes_bridge !== null) {
-          stop.stop_headsign ??= 'Barnes Bridge';
-        }
+          // rounder via Bexleyheath first
+          if (bexleyheath !== null && eltham !== null && eltham < bexleyheath && dartford === null) {
+            if (slade_green !== null && bexleyheath < slade_green) {
+              false_destination ??= `Slade Green`;
+            }
+            if (barnehurst !== null && bexleyheath < barnehurst) {
+              false_destination ??= `Barnehurst`;
+            }
+          }
+          if (barnehurst !== null || stop_code === 'BNH') {
+            if (woolwich !== null && (barnehurst ?? i) < woolwich) {
+              false_destination ??= 'Woolwich Arsenal';
+            }
+            if (sidcup !== null && (barnehurst ?? i) < sidcup) {
+              false_destination ??= 'Sidcup';
+            }
+          }
 
-        // Hounslow loop anti-clockwise
-        if (hounslow !== null && brentford !== null && brentford < hounslow && staines === null) {
-          stop.stop_headsign ??= 'Hounslow';
-        }
-        if (hounslow !== null && mortlake !== null && hounslow < mortlake) {
-          stop.stop_headsign ??= 'Mortlake';
-        }
+          // rounder via Sidcup first
+          if (sidcup !== null && dartford === null) {
+            if (slade_green !== null && sidcup < slade_green) {
+              false_destination ??= `Slade Green`;
+            }
+            if (crayford !== null && sidcup < crayford) {
+              false_destination ??= `Crayford`;
+            }
+          }
+          if (crayford !== null || stop_code === 'CRY') {
+            if (woolwich !== null && (crayford ?? i) < woolwich) {
+              false_destination ??= 'Woolwich Arsenal';
+            }
+            if (eltham !== null && (crayford ?? i) < eltham) {
+              false_destination ??= 'Eltham';
+            }
+          }
 
-        // Weybridge (via Hounslow) service
-        if (stop_code === 'WAT' && addlestone !== null) {
-          stop.stop_headsign ??= 'Addlestone';
+          const ashford = findCallingIndex('AFK');
+          const sandwich = findCallingIndex('SDW');
+          const gravesend = findCallingIndex('GRV');
+          const ramsgate = findCallingIndex('RAM');
+          const folkestone_west = findCallingIndex('FKW');
+          const margate = findCallingIndex('MAR');
+          const canterbury_west = findCallingIndex('CBW');
+          // Kent coast rounder anti clockwise
+          if (
+              sandwich !== null 
+              && (ashford !== null && ashford < sandwich || stop_code === 'AFK') 
+              && canterbury_west === null /* https://github.com/planarnetwork/dtd2mysql/issues/80 */) {
+            false_destination ??= 'Sandwich';
+          }
+          if (gravesend !== null && (stop_code === 'SDW' || (sandwich !== null && sandwich < gravesend))) {
+            false_destination ??= 'Gravesend';
+          }
+
+          // Kent coast rounder clockwise
+          if (ramsgate !== null && gravesend !== null && gravesend < ramsgate) {
+            false_destination ??= 'Ramsgate';
+          }
+          if (folkestone_west !== null && margate !== null && margate < folkestone_west) {
+            false_destination ??= 'Folkestone West';
+          }
         }
-        if (addlestone !== null && barnes !== null && addlestone < barnes) {
-          stop.stop_headsign ??= 'Barnes';
-        }
+        return false_destination;
       }
 
-      if (atoc_code === 'SE') {
-        const dartford = findCallingIndex('DFD');
-        const woolwich = findCallingIndex('WWA');
-        const bexleyheath = findCallingIndex('BXH');
-        const sidcup = findCallingIndex('SID');
-        const lewisham = findCallingIndex('LEW');
-        const greenwich = findCallingIndex('GNW');
-        const slade_green = findCallingIndex('SGR');
-        const eltham = findCallingIndex('ELW');
-        const crayford = findCallingIndex('CRY');
-        const barnehurst = findCallingIndex('BNH');
-        const charlton = findCallingIndex('CTN');
-        const hither_green = findCallingIndex('HGR');
-        const ladywell = findCallingIndex('LAD');
-        
-        // rounder via Woolwich first
-        if (woolwich !== null && slade_green !== null && woolwich < slade_green && dartford === null) {
-          stop.stop_headsign ??= 'Slade Green';
-        }
-        if (slade_green !== null && eltham !== null && slade_green < eltham) {
-          stop.stop_headsign ??= 'Eltham';
-        }
-        if (slade_green !== null && sidcup !== null && slade_green < sidcup) {
-          stop.stop_headsign ??= 'Sidcup';
-        }
+      const stop = stops[i];
+      const stop_code = stop.stop_code ?? '';
+      const false_destination = getFalseDestination();
 
-        // rounder via Bexleyheath first
-        if (bexleyheath !== null && eltham !== null && eltham < bexleyheath && dartford === null) {
-          if (slade_green !== null && bexleyheath < slade_green) {
-            stop.stop_headsign ??= `Slade Green`;
-          }
-          if (barnehurst !== null && bexleyheath < barnehurst) {
-            stop.stop_headsign ??= `Barnehurst`;
-          }
-        }
-        if (barnehurst !== null || stop_code === 'BNH') {
-          if (woolwich !== null && (barnehurst ?? i) < woolwich) {
-            stop.stop_headsign ??= 'Woolwich Arsenal';
-          }
-          if (sidcup !== null && (barnehurst ?? i) < sidcup) {
-            stop.stop_headsign ??= 'Sidcup';
-          }
-        }
+      const remaining_tiplocs = stops.slice(i + 1).map(s => s.tiploc_code);
 
-        // rounder via Sidcup first
-        if (sidcup !== null && dartford === null) {
-          if (slade_green !== null && sidcup < slade_green) {
-            stop.stop_headsign ??= `Slade Green`;
-          }
-          if (crayford !== null && sidcup < crayford) {
-            stop.stop_headsign ??= `Crayford`;
-          }
-        }
-        if (crayford !== null || stop_code === 'CRY') {
-          if (woolwich !== null && (crayford ?? i) < woolwich) {
-            stop.stop_headsign ??= 'Woolwich Arsenal';
-          }
-          if (eltham !== null && (crayford ?? i) < eltham) {
-            stop.stop_headsign ??= 'Eltham';
-          }
-        }
-
-        const ashford = findCallingIndex('AFK');
-        const sandwich = findCallingIndex('SDW');
-        const gravesend = findCallingIndex('GRV');
-        const ramsgate = findCallingIndex('RAM');
-        const folkestone_west = findCallingIndex('FKW');
-        const margate = findCallingIndex('MAR');
-        const chatham = findCallingIndex('CTM');
-        const dover = findCallingIndex('DVP');
-        const canterbury_west = findCallingIndex('CBW');
-        // Kent coast rounder anti clockwise
-        if (sandwich !== null && (ashford !== null && ashford < sandwich || stop_code === 'AFK')
-            && canterbury_west === null /* https://github.com/planarnetwork/dtd2mysql/issues/80 */
-        ) {
-          stop.stop_headsign ??= 'Sandwich';
-        }
-        if (gravesend !== null && (stop_code === 'SDW' || (sandwich !== null && sandwich < gravesend))) {
-          stop.stop_headsign ??= 'Gravesend';
-        }
-
-        // Kent coast rounder clockwise
-        if (ramsgate !== null && gravesend !== null && gravesend < ramsgate) {
-          stop.stop_headsign ??= 'Ramsgate';
-        }
-        if (folkestone_west !== null && margate !== null && margate < folkestone_west) {
-          stop.stop_headsign ??= 'Folkestone West';
-        }
-      }
-      
       const via = viaText[stop_code]?.find(
           item => {
             const loc1index = item.Loc1 === null ? null : remaining_tiplocs.indexOf(item.Loc1);
@@ -360,7 +372,7 @@ export class ScheduleBuilder {
           }
       )?.Viatext;
       if (via !== undefined) {
-        stop.stop_headsign = `${stop.stop_headsign ?? destination_name} (${via})`;
+        stop.stop_headsign = `${false_destination ?? destination_name} (${via})`;
       }
     }
   }
