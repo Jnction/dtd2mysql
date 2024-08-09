@@ -393,7 +393,7 @@ export type ViaText = {
   [crs: CRS]: {
     At: CRS,
     Dest: TIPLOC,
-    Loc1: TIPLOC | null,
+    Loc1: TIPLOC,
     Loc2: TIPLOC | null,
     Viatext: string
   }[]

@@ -6,7 +6,7 @@ import {StopTime} from "../file/StopTime";
 import {IdGenerator, STP} from "../native/OverlayRecord";
 import {Schedule} from "../native/Schedule";
 import {ScheduleCalendar} from "../native/ScheduleCalendar";
-import {CIFRepository, ScheduleStopTimeRow} from "./CIFRepository";
+import {CIFRepository, ScheduleStopTimeRow, ViaText} from "./CIFRepository";
 import moment = require("moment");
 
 const pickupActivities = ["T ", "TB", "U "];
@@ -192,7 +192,10 @@ export class ScheduleBuilder {
 
       // False destinations still have to be hardcoded currently
       // TODO: guess false destinations from Darwin timetable data instead of hardcoding them
-      function getFalseDestination() {
+      /**
+       * Find the index of the false destination
+       */
+      function getFalseDestinationIndex() {
         // https://www.railforums.co.uk/threads/services-advertised-as-terminating-at-penultimate-station.252431/post-6453655
         if (atoc_code === 'SW') {
           const strawberry_hill = findCallingIndex('STW');
@@ -215,13 +218,13 @@ export class ScheduleBuilder {
               ['WAT', 'VXH', 'CLJ'].includes(stop_code)
               && wimbledon !== null && strawberry_hill !== null && wimbledon < strawberry_hill && staines === null
           ) {
-            return 'Strawberry Hill';
+            return strawberry_hill;
           }
           if (kingston !== null && richmond !== null && kingston < richmond) {
-            return 'Richmond';
+            return richmond;
           }
           if (kingston !== null && chiswick !== null && kingston < chiswick) {
-            return 'Chiswick';
+            return chiswick;
           }
 
           // Kingston loop anti-clockwise
@@ -229,12 +232,12 @@ export class ScheduleBuilder {
               ['WAT', 'VXH', 'QRB', 'CLJ'].includes(stop_code)
               && teddington !== null && strawberry_hill !== null && twickenham !== null && twickenham < strawberry_hill
           ) {
-            return 'Teddington';
+            return teddington;
           }
           if (wimbledon !== null && (
               twickenham !== null && twickenham < wimbledon || stop_code === 'TWI'
           )) {
-            return 'Wimbledon';
+            return wimbledon;
           }
 
           // Hounslow loop clockwise
@@ -242,29 +245,29 @@ export class ScheduleBuilder {
               hounslow !== null && richmond !== null && richmond < hounslow 
               && ['WAT', 'VXH', 'QRB', 'CLJ', 'WNT', 'PUT', 'BNS'].includes(stop_code)
           ) {
-            return 'Hounslow';
+            return hounslow;
           }
           if (chiswick !== null && (stop_code === 'TWI' || twickenham !== null && twickenham < chiswick)) {
-            return 'Chiswick';
+            return chiswick;
           }
           if (stop_code === 'WTN' && barnes_bridge !== null) {
-            return 'Barnes Bridge';
+            return barnes_bridge;
           }
 
           // Hounslow loop anti-clockwise
           if (hounslow !== null && brentford !== null && brentford < hounslow && staines === null) {
-            return 'Hounslow';
+            return hounslow;
           }
           if (hounslow !== null && mortlake !== null && hounslow < mortlake) {
-            return 'Mortlake';
+            return mortlake;
           }
 
           // Weybridge (via Hounslow) service
           if (stop_code === 'WAT' && addlestone !== null) {
-            return 'Addlestone';
+            return addlestone;
           }
           if (addlestone !== null && barnes !== null && addlestone < barnes) {
-            return 'Barnes';
+            return barnes;
           }
         }
 
@@ -280,48 +283,48 @@ export class ScheduleBuilder {
 
           // rounder via Woolwich first
           if (woolwich !== null && slade_green !== null && woolwich < slade_green && dartford === null) {
-            return 'Slade Green';
+            return slade_green;
           }
           if (slade_green !== null && eltham !== null && slade_green < eltham) {
-            return 'Eltham';
+            return eltham;
           }
           if (slade_green !== null && sidcup !== null && slade_green < sidcup) {
-            return 'Sidcup';
+            return sidcup;
           }
 
           // rounder via Bexleyheath first
           if (bexleyheath !== null && eltham !== null && eltham < bexleyheath && dartford === null) {
             if (slade_green !== null && bexleyheath < slade_green) {
-              return `Slade Green`;
+              return slade_green;
             }
             if (barnehurst !== null && bexleyheath < barnehurst) {
-              return `Barnehurst`;
+              return barnehurst;
             }
           }
           if (barnehurst !== null || stop_code === 'BNH') {
             if (woolwich !== null && (barnehurst ?? i) < woolwich) {
-              return 'Woolwich Arsenal';
+              return woolwich;
             }
             if (sidcup !== null && (barnehurst ?? i) < sidcup) {
-              return 'Sidcup';
+              return sidcup;
             }
           }
 
           // rounder via Sidcup first
           if (sidcup !== null && dartford === null) {
             if (slade_green !== null && sidcup < slade_green) {
-              return `Slade Green`;
+              return slade_green;
             }
             if (crayford !== null && sidcup < crayford) {
-              return `Crayford`;
+              return crayford;
             }
           }
           if (crayford !== null || stop_code === 'CRY') {
             if (woolwich !== null && (crayford ?? i) < woolwich) {
-              return 'Woolwich Arsenal';
+              return woolwich;
             }
             if (eltham !== null && (crayford ?? i) < eltham) {
-              return 'Eltham';
+              return eltham;
             }
           }
 
@@ -337,37 +340,44 @@ export class ScheduleBuilder {
               sandwich !== null 
               && (ashford !== null && ashford < sandwich || stop_code === 'AFK') 
               && canterbury_west === null /* https://github.com/planarnetwork/dtd2mysql/issues/80 */) {
-            return 'Sandwich';
+            return sandwich;
           }
           if (gravesend !== null && (stop_code === 'SDW' || (sandwich !== null && sandwich < gravesend))) {
-            return 'Gravesend';
+            return gravesend;
           }
 
           // Kent coast rounder clockwise
           if (ramsgate !== null && gravesend !== null && gravesend < ramsgate) {
-            return 'Ramsgate';
+            return ramsgate;
           }
           if (folkestone_west !== null && margate !== null && margate < folkestone_west) {
-            return 'Folkestone West';
+            return folkestone_west;
           }
         }
         
         if (atoc_code === 'ME') {
           // Wirral line
           const moorfields = findCallingIndex('MRF');
-          const liverpool_central = findCallingIndex('LVC');
-          if (moorfields !== null && liverpool_central !== null && moorfields < liverpool_central) {
-            return 'Liverpool Central';
+          if (moorfields !== null) {
+            const liverpool_central = findCallingIndex('LVC', moorfields);
+            if (liverpool_central !== null) {
+              if (findCallingIndex('LVJ', liverpool_central) !== null) {
+                return liverpool_central;
+              }
+            }
           }
         }
         
         if (atoc_code === 'AW') {
           // Merthyr line
-          const cardiff_central = findCallingIndex('CDF');
-          if (cardiff_central !== null) {
-            const radyr = findCallingIndex('RDR', cardiff_central);
-            if (radyr !== null) {
-              return 'Cardiff Central';
+          const ninian_park = findCallingIndex('NNP', i);
+          if (ninian_park !== null) {
+            const cardiff_central = findCallingIndex('CDF', ninian_park);
+            if (cardiff_central !== null) {
+              const radyr = findCallingIndex('RDR', cardiff_central);
+              if (radyr !== null) {
+                return cardiff_central;
+              }
             }
           }
         }
@@ -378,7 +388,7 @@ export class ScheduleBuilder {
             const brighouse = findCallingIndex('BGH', huddersfield);
             if (brighouse !== null) {
               if (findCallingIndex('HUD', brighouse) /* again */) {
-                return 'Brighouse';
+                return brighouse;
               }
             }
           }
@@ -388,18 +398,32 @@ export class ScheduleBuilder {
 
       const stop = stops[i];
       const stop_code = stop.stop_code ?? '';
-      const false_destination = getFalseDestination();
+      const false_destination_index = getFalseDestinationIndex();
+      const false_destination = false_destination_index === null ? null : await repository.getStopName(stops[false_destination_index].stop_id);
 
-      const remaining_tiplocs = stops.slice(i + 1).map(s => s.tiploc_code);
+      const via_tiplocs = stops.slice(i + 1, false_destination_index ?? -1).map(s => s.tiploc_code);
 
-      const via = viaText[stop_code]?.find(
-          item => {
-            const loc1index = item.Loc1 === null ? null : remaining_tiplocs.indexOf(item.Loc1);
-            const loc2index = item.Loc2 === null ? null : remaining_tiplocs.indexOf(item.Loc2);
-            return item.At === stop_code && item.Dest === destination_tiploc
-              && (item.Loc1 === null || loc1index! >= 0) && (item.Loc2 === null || loc2index! >= 0)
-              && (item.Loc1 === null || item.Loc2 === null || loc2index! > loc1index!)
+      const via = viaText[stop_code]?.reduce(
+        // The wiki says that:
+        // False destinations aren't considered for the purposes of determining the via text, 
+        // but would still be displayed (e.g. at Leeds, the Leeds-York via Harrogate service would be displayed as "Poppleton via Harrogate").
+        // 
+        // however, it is not true in the real world. It is displayed as Poppleton only despite an entry of Leeds-York via Harrogate in the XML.
+        (carry : ViaText[string][number] | null, item) => {
+          const loc1index = via_tiplocs.indexOf(item.Loc1);
+          const loc2index = item.Loc2 === null ? null : via_tiplocs.indexOf(item.Loc2);
+          if (item.At === stop_code && item.Dest === (false_destination_index === null ? destination_tiploc : stops[false_destination_index].tiploc_code)
+              && loc1index >= 0 && (item.Loc2 === null || loc2index! >= 0)
+              && (item.Loc2 === null || loc2index! > loc1index)) {
+            if (carry === null) {
+              return item;
+            }
+            const carryIndex = via_tiplocs.indexOf(carry.Loc1);
+            return loc1index < carryIndex ? item : carry;
           }
+          return carry;
+        },
+        null,
       )?.Viatext;
       
       stop.stop_headsign = via !== undefined ? `${false_destination ?? destination_name} (${via})` : false_destination;
