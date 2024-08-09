@@ -193,8 +193,6 @@ export class ScheduleBuilder {
       // False destinations still have to be hardcoded currently
       // TODO: guess false destinations from Darwin timetable data instead of hardcoding them
       function getFalseDestination() {
-        let false_destination : string | null = null;
-
         // https://www.railforums.co.uk/threads/services-advertised-as-terminating-at-penultimate-station.252431/post-6453655
         if (atoc_code === 'SW') {
           const strawberry_hill = findCallingIndex('STW');
@@ -217,13 +215,13 @@ export class ScheduleBuilder {
               ['WAT', 'VXH', 'CLJ'].includes(stop_code)
               && wimbledon !== null && strawberry_hill !== null && wimbledon < strawberry_hill && staines === null
           ) {
-            false_destination ??= 'Strawberry Hill';
+            return 'Strawberry Hill';
           }
           if (kingston !== null && richmond !== null && kingston < richmond) {
-            false_destination ??= 'Richmond';
+            return 'Richmond';
           }
           if (kingston !== null && chiswick !== null && kingston < chiswick) {
-            false_destination ??= 'Chiswick';
+            return 'Chiswick';
           }
 
           // Kingston loop anti-clockwise
@@ -231,12 +229,12 @@ export class ScheduleBuilder {
               ['WAT', 'VXH', 'QRB', 'CLJ'].includes(stop_code)
               && teddington !== null && strawberry_hill !== null && twickenham !== null && twickenham < strawberry_hill
           ) {
-            false_destination ??= 'Teddington';
+            return 'Teddington';
           }
           if (wimbledon !== null && (
               twickenham !== null && twickenham < wimbledon || stop_code === 'TWI'
           )) {
-            false_destination ??= 'Wimbledon';
+            return 'Wimbledon';
           }
 
           // Hounslow loop clockwise
@@ -244,29 +242,29 @@ export class ScheduleBuilder {
               hounslow !== null && richmond !== null && richmond < hounslow 
               && ['WAT', 'VXH', 'QRB', 'CLJ', 'WNT', 'PUT', 'BNS'].includes(stop_code)
           ) {
-            false_destination ??= 'Hounslow';
+            return 'Hounslow';
           }
           if (chiswick !== null && (stop_code === 'TWI' || twickenham !== null && twickenham < chiswick)) {
-            false_destination ??= 'Chiswick';
+            return 'Chiswick';
           }
           if (stop_code === 'WTN' && barnes_bridge !== null) {
-            false_destination ??= 'Barnes Bridge';
+            return 'Barnes Bridge';
           }
 
           // Hounslow loop anti-clockwise
           if (hounslow !== null && brentford !== null && brentford < hounslow && staines === null) {
-            false_destination ??= 'Hounslow';
+            return 'Hounslow';
           }
           if (hounslow !== null && mortlake !== null && hounslow < mortlake) {
-            false_destination ??= 'Mortlake';
+            return 'Mortlake';
           }
 
           // Weybridge (via Hounslow) service
           if (stop_code === 'WAT' && addlestone !== null) {
-            false_destination ??= 'Addlestone';
+            return 'Addlestone';
           }
           if (addlestone !== null && barnes !== null && addlestone < barnes) {
-            false_destination ??= 'Barnes';
+            return 'Barnes';
           }
         }
 
@@ -282,48 +280,48 @@ export class ScheduleBuilder {
 
           // rounder via Woolwich first
           if (woolwich !== null && slade_green !== null && woolwich < slade_green && dartford === null) {
-            false_destination ??= 'Slade Green';
+            return 'Slade Green';
           }
           if (slade_green !== null && eltham !== null && slade_green < eltham) {
-            false_destination ??= 'Eltham';
+            return 'Eltham';
           }
           if (slade_green !== null && sidcup !== null && slade_green < sidcup) {
-            false_destination ??= 'Sidcup';
+            return 'Sidcup';
           }
 
           // rounder via Bexleyheath first
           if (bexleyheath !== null && eltham !== null && eltham < bexleyheath && dartford === null) {
             if (slade_green !== null && bexleyheath < slade_green) {
-              false_destination ??= `Slade Green`;
+              return `Slade Green`;
             }
             if (barnehurst !== null && bexleyheath < barnehurst) {
-              false_destination ??= `Barnehurst`;
+              return `Barnehurst`;
             }
           }
           if (barnehurst !== null || stop_code === 'BNH') {
             if (woolwich !== null && (barnehurst ?? i) < woolwich) {
-              false_destination ??= 'Woolwich Arsenal';
+              return 'Woolwich Arsenal';
             }
             if (sidcup !== null && (barnehurst ?? i) < sidcup) {
-              false_destination ??= 'Sidcup';
+              return 'Sidcup';
             }
           }
 
           // rounder via Sidcup first
           if (sidcup !== null && dartford === null) {
             if (slade_green !== null && sidcup < slade_green) {
-              false_destination ??= `Slade Green`;
+              return `Slade Green`;
             }
             if (crayford !== null && sidcup < crayford) {
-              false_destination ??= `Crayford`;
+              return `Crayford`;
             }
           }
           if (crayford !== null || stop_code === 'CRY') {
             if (woolwich !== null && (crayford ?? i) < woolwich) {
-              false_destination ??= 'Woolwich Arsenal';
+              return 'Woolwich Arsenal';
             }
             if (eltham !== null && (crayford ?? i) < eltham) {
-              false_destination ??= 'Eltham';
+              return 'Eltham';
             }
           }
 
@@ -339,18 +337,18 @@ export class ScheduleBuilder {
               sandwich !== null 
               && (ashford !== null && ashford < sandwich || stop_code === 'AFK') 
               && canterbury_west === null /* https://github.com/planarnetwork/dtd2mysql/issues/80 */) {
-            false_destination ??= 'Sandwich';
+            return 'Sandwich';
           }
           if (gravesend !== null && (stop_code === 'SDW' || (sandwich !== null && sandwich < gravesend))) {
-            false_destination ??= 'Gravesend';
+            return 'Gravesend';
           }
 
           // Kent coast rounder clockwise
           if (ramsgate !== null && gravesend !== null && gravesend < ramsgate) {
-            false_destination ??= 'Ramsgate';
+            return 'Ramsgate';
           }
           if (folkestone_west !== null && margate !== null && margate < folkestone_west) {
-            false_destination ??= 'Folkestone West';
+            return 'Folkestone West';
           }
         }
         
@@ -385,7 +383,7 @@ export class ScheduleBuilder {
             }
           }
         }
-        return false_destination;
+        return null;
       }
 
       const stop = stops[i];
@@ -403,9 +401,8 @@ export class ScheduleBuilder {
               && (item.Loc1 === null || item.Loc2 === null || loc2index! > loc1index!)
           }
       )?.Viatext;
-      if (via !== undefined) {
-        stop.stop_headsign = `${false_destination ?? destination_name} (${via})`;
-      }
+      
+      stop.stop_headsign = via !== undefined ? `${false_destination ?? destination_name} (${via})` : false_destination;
     }
   }
 }
