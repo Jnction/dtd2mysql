@@ -47,7 +47,11 @@ export class Association implements OverlayRecord {
     const assocCalendar = this.dateIndicator === DateIndicator.Next ? this.calendar.shiftForward() : 
         this.dateIndicator === DateIndicator.Previous ? this.calendar.shiftBackward() : this.calendar;
     const mergedBase = this.mergeSchedules(base, assoc);
-    const schedules = mergedBase !== null ? [mergedBase] : [];
+    if (mergedBase === null) {
+      // the association does not apply
+      return [assoc];
+    }
+    const schedules = [mergedBase];
 
     // exclude the associated schedule from running when the association is active
     const excludeCalendar = assoc.calendar.addExcludeDays(assocCalendar);
@@ -72,7 +76,12 @@ export class Association implements OverlayRecord {
 
     // this should never happen, unless data feed is corrupted. It will prevent us from update failure
     if (baseStopTime === undefined || assocStopTime === undefined) {
-      return assoc;
+      return null;
+    }
+    
+    // if the split or merge happens at the start or the end of the trip, ignore the association
+    if (baseStopTime === base.stopTimes[0] || baseStopTime === base.stopTimes[base.stopTimes.length - 1]) {
+      return null;
     }
 
     if (this.assocType === AssociationType.Split) {
