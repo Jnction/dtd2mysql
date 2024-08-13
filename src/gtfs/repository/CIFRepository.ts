@@ -23,7 +23,8 @@ export class CIFRepository {
     private readonly db: DatabaseConnection,
     private readonly stream: Pool,
     public stationCoordinates: StationCoordinates,
-    public tiplocCoordinates: TiplocCoordiates = {}
+    public tiplocCoordinates: TiplocCoordiates = {},
+    private additionalStops: Stop[] = [],
   ) {
     proj4.defs('EPSG:27700', '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs');
   }
@@ -91,7 +92,7 @@ export class CIFRepository {
   identified by its minor CRS code and the platform number, associated to the station with the main CRS code.
    */
   private stops : Promise<Stop[]> = (async () => {
-    const [results] = await this.db.query<
+    const [db_results] = await this.db.query<
       Omit<Stop, 'stop_lat' | 'stop_lon'> & {easting : number, northing : number, tiploc_code : string}
     >(`
       SELECT -- select all the physical stations
@@ -143,12 +144,15 @@ export class CIFRepository {
       -- The schedule data uses ANSL for trains starting from platform 3, refer to ScotRail Mo-Fr 18:03 service from Anniesland to Glasgow Queen Street for details
       WHERE physical_station.crs_code IS NOT NULL AND physical_station.tiploc_code <> 'ANSL3'
     `);
+    const results : Stop[] = [...this.additionalStops, ...db_results.map(row => {
+      const [stop_lon, stop_lat] = proj4('EPSG:27700', 'EPSG:4326', [(row.easting - 10000) * 100, (row.northing - 60000) * 100]);
+      const {easting, northing, ...stop} = {...row, stop_lon, stop_lat};
+      return stop;
+    })];
 
     // overlay the long and latitude values from configuration
-    return results.map(row => {
-      const [stop_lon, stop_lat] = proj4('EPSG:27700', 'EPSG:4326', [(row.easting - 10000) * 100, (row.northing - 60000) * 100]);
-      const {easting, northing, tiploc_code, ...stop} = {...row, stop_lon, stop_lat};
-      const tiploc_entry = this.tiplocCoordinates[tiploc_code];
+    return results.map(stop => {
+      const tiploc_entry = this.tiplocCoordinates[stop.tiploc_code];
       const station_data =
           this.stationCoordinates[stop.stop_code]
           ?? this.stationCoordinates[results.find(parent_stop => parent_stop.stop_id === stop.parent_station)?.stop_code ?? '']

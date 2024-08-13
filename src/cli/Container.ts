@@ -91,7 +91,8 @@ export class Container {
         this.getDatabaseConnection(),
         this.getDatabaseStream(),
         stationCoordinates,
-        this.getTiplocCoordinates() ?? undefined
+        this.getTiplocCoordinates() ?? undefined,
+        this.getStops() ?? undefined
       ),
       output
     );
@@ -224,5 +225,24 @@ export class Container {
       };
     }
     return result;
+  }
+
+  private getStops() : Stop[] | null {
+    const stopFilePath = `${appRootPath}/stops.csv`;
+    return fs.existsSync(stopFilePath)
+        ? csvParse.parse(
+            fs.readFileSync(stopFilePath, {encoding : 'utf8'}).replace(/^\uFEFF/, ''),
+            {
+              columns : true,
+              cast : (value, context) => [
+                'stop_lon',
+                'stop_lat',
+                'wheelchair_boarding'
+              ].includes(String(context.column))
+                  ? value === '' ? null : Number(value)
+                  : value
+            }
+        )
+        : null;
   }
 }
