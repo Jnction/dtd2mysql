@@ -23,6 +23,7 @@ which differ significantly from upstream, all related to GTFS generation:
 * Route colours are added.
 * Shapes are generated for every trip from the TIPLOCs of the actual routing used, such that diversions can be shown on journey planners.
 * Headsigns are filled by logic in order to replicate the departure boards in real life.
+* Non-National Rail services, such as metro services, bus services (except rail replacement buses) and ship services are not included in the GTFS output.
 
 ## Fares 
 
