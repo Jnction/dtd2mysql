@@ -237,7 +237,8 @@ export class Container {
               cast : (value, context) => [
                 'stop_lon',
                 'stop_lat',
-                'wheelchair_boarding'
+                'wheelchair_boarding',
+                'location_type'
               ].includes(String(context.column))
                   ? value === '' ? null : Number(value)
                   : value
