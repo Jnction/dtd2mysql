@@ -123,6 +123,7 @@ export class OutputGTFSCommand implements CLICommand {
           r.stop_code !== null // filter out technical stops at non-station
           && (r.departure_time != null || r.arrival_time != null) // filter out non-public stops
       )
+          .map((r, index) => Object.assign(r, {stop_sequence: index}))
           .forEach(r => {
             const {stop_code, tiploc_code, ...remaining} = r;
             stopTimes.write(remaining);
