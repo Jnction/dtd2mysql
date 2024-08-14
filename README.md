@@ -1,6 +1,5 @@
 
-![npm](https://img.shields.io/npm/v/dtd2mysql.svg?style=flat-square) ![npm](https://img.shields.io/npm/dw/dtd2mysql.svg?style=flat-square) 
-
+# A Fork of dtd2mysql to generate National Rail GTFS with better interoperability to UK national standards
 
 An import tool for the British rail fares, routeing and timetable feeds into a database.
 
@@ -14,11 +13,16 @@ Pull requests are made to [upstream](https://github.com/planarnetwork/dtd2mysql)
 which differ significantly from upstream, all related to GTFS generation:
 
 * `stops.txt` includes all stations and platforms, with ATCO code as the ID. This helps combining with other national GTFS datasets of other transport modes.
-* The scheduled platform allocation for each service is included
+* `agency_id` are prefixed with `=` as in the Traveline NOC dataset.
+* Each schedule entry in the timetable data is mapped to exactly one GTFS trip, with the `original_trip_id` field being the UID of the schedule entry.
+* The scheduled platform allocation for each service is included.
 * Adds the ability to supply alternative station data from an external JSON file, including coordinates and wheelchair accessibility.
-* The RSID is used for trip names
-* Names such as "Stansted Express", "West Midlands Railway", etc., are used for route names
-* Headsigns are filled by logic in order to replicate the departure boards in real life
+* Adds the ability to supply extra stops (platforms) not found in the timetable data.
+* The RSID is used for trip names.
+* Names such as "Stansted Express", "West Midlands Railway", etc., are used for route names.
+* Route colours are added.
+* Shapes are generated for every trip from the TIPLOCs of the actual routing used, such that diversions can be shown on journey planners.
+* Headsigns are filled by logic in order to replicate the departure boards in real life.
 
 ## Fares 
 
@@ -123,7 +127,7 @@ This will cause any data after that point to be either incomplete or incorrect, 
 Issues and PRs are very welcome. To get the project set up run
 
 ```
-git clone git@github.com:planarnetwork/dtd2mysql
+git clone git@github.com:jnction/dtd2mysql
 npm install --dev
 npm test
 ```
@@ -134,6 +138,6 @@ If you would like to send a pull request please write your contribution in TypeS
 
 This software is licensed under [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
-Copyright 2017 Linus Norton.
+Copyright 2024 Linus Norton & Jnction Limited.
 
 tiplocs.csv is derived from https://github.com/oweno-tfwm/YA_Tiploc_List under the same licence. 
