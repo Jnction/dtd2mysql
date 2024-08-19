@@ -49,22 +49,12 @@ export class CIFRepository {
   /**
    * Return all the stops with some configurable long/lat applied
    */
-  public getStops(): Promise<Stop[]> {
-    return this.stops;
+  public async getStops(): Promise<Stop[]> {
+    return [...(await this.stops).values()];
   }
 
-  private stopById : Map<string, Stop> | undefined;
   public async findStopById(stopId: string) {
-    if (this.stopById === undefined) {
-      const stops = await this.getStops();
-      if (this.stopById === undefined) {
-        this.stopById = new Map<string, Stop>();
-        for (const stop of stops) {
-          this.stopById.set(stop.stop_id, stop);
-        }
-      }
-    }
-    return this.stopById!.get(stopId);
+    return (await this.stops).get(stopId);
   }
 
   /*
@@ -91,7 +81,7 @@ export class CIFRepository {
   and one entry for each TIPLOC (for unknown platform number) and each platform as a GTFS stop
   identified by its minor CRS code and the platform number, associated to the station with the main CRS code.
    */
-  private stops : Promise<Stop[]> = (async () => {
+  private stops : Promise<Map<string, Stop>> = (async () => {
     const [db_results] = await this.db.query<
       Omit<Stop, 'stop_lat' | 'stop_lon'> & {easting : number, northing : number, tiploc_code : string}
     >(`
@@ -150,8 +140,10 @@ export class CIFRepository {
       return stop;
     })];
 
+    const stopById = new Map<string, Stop>();
+
     // overlay the long and latitude values from configuration
-    return results.map(stop => {
+    for (const stop of results.map(stop => {
       const tiploc_entry = this.tiplocCoordinates[stop.tiploc_code];
       const station_data =
           this.stationCoordinates[stop.stop_code]
@@ -181,7 +173,11 @@ export class CIFRepository {
         delete result['platforms'];
         return result;
       }
-    });
+    })) {
+      stopById.set(stop.stop_id, stop);
+    }
+    
+    return stopById;
   })();
 
   /**
