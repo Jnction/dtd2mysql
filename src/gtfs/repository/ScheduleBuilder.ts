@@ -9,8 +9,8 @@ import {ScheduleCalendar} from "../native/ScheduleCalendar";
 import {CIFRepository, ScheduleStopTimeRow, ViaText} from "./CIFRepository";
 import moment = require("moment");
 
-const pickupActivities = ["T ", "TB", "U "];
-const dropOffActivities = ["T ", "TF", "D "];
+const pickupActivities = ["T ", "TB", "TF", "U "];
+const dropOffActivities = ["T ", "TB", "TF", "D "];
 const coordinatedActivity = ["R "];
 const notAdvertised = "N ";
 
