@@ -62,7 +62,9 @@ stop_id,stop_name,stop_lat,stop_lon,stop_code,tiploc_code,stop_desc,stop_timezon
 9100ALXANDR1,Alexandria (Platform 1),55.9852719,-4.5773243,ALX,ALXANDR,,Europe/London,1,1,910GALXANDR,0
 9100ALXPD1,Alexandra Parade (Platform 1),55.8633135,-4.2106057,AXP,ALXPD,,Europe/London,2,1,910GALXPD,0
 9100ALXPD2,Alexandra Parade (Platform 2),55.8633135,-4.2106057,AXP,ALXPD,,Europe/London,2,2,910GALXPD,0
+9100AMERSHM1,Amersham (Platform 1),51.6740875,-0.6073643,AMR,AMERSHM,,Europe/London,1,1,910GAMERSHM,0
 9100AMERSHM2,Amersham (Platform 2),51.6740875,-0.6073643,AMR,AMERSHM,,Europe/London,1,2,910GAMERSHM,0
+9100AMERSHM3,Amersham (Platform 3),51.6740875,-0.6073643,AMR,AMERSHM,,Europe/London,1,3,910GAMERSHM,0
 9100AMLY1,Amberley (Platform 1),50.8966534,-0.5419326,AMY,AMLY,,Europe/London,0,1,910GAMLY,0
 9100AMLY2,Amberley (Platform 2),50.8966534,-0.5419326,AMY,AMLY,,Europe/London,0,2,910GAMLY,0
 9100AMMANFD1,Ammanford (Platform 1),51.7955509,-3.996828,AMF,AMMANFD,,Europe/London,0,1,910GAMMANFD,0
@@ -611,6 +613,8 @@ stop_id,stop_name,stop_lat,stop_lon,stop_code,tiploc_code,stop_desc,stop_timezon
 9100CHRISTC2,Christchurch (Platform 2),50.7383709,-1.7847306,CHR,CHRISTC,,Europe/London,0,2,910GCHRISTC,0
 9100CHRSTSH1,Christs Hospital (Platform 1),51.0508094,-0.3638616,CHH,CHRSTSH,,Europe/London,0,1,910GCHRSTSH,0
 9100CHRSTSH2,Christs Hospital (Platform 2),51.0508094,-0.3638616,CHH,CHRSTSH,,Europe/London,0,2,910GCHRSTSH,0
+9100CHRW1,Chorleywood (Platform 1),51.6541757,-0.5183558,CLW,CHRW,,Europe/London,1,1,910GCHRW,0
+9100CHRW2,Chorleywood (Platform 2),51.6541757,-0.5183558,CLW,CHRW,,Europe/London,1,2,910GCHRW,0
 9100CHSD1,Chipstead (Platform 1),51.3093522,-0.1693688,CHP,CHSD,,Europe/London,0,1,910GCHSD,0
 9100CHSD2,Chipstead (Platform 2),51.3093522,-0.1693688,CHP,CHSD,,Europe/London,0,2,910GCHSD,0
 9100CHSLHRSBUS,Chislehurst (Platform BUS),51.4051626,0.0578673,CIT,CHSLHRS,,Europe/London,0,BUS,910GCHSLHRS,0
@@ -1314,6 +1318,7 @@ stop_id,stop_name,stop_lat,stop_lon,stop_code,tiploc_code,stop_desc,stop_timezon
 9100HANDBROBUS,Hanborough (Platform BUS),51.8247081,-1.3726319,HND,HANDBRO,,Europe/London,1,BUS,910GHANDBRO,0
 9100HARMYRS1,Hairmyres (Platform 1),55.7619088,-4.2205481,HMY,HARMYRS,,Europe/London,1,1,910GHARMYRS,0
 9100HAROOTH1,Harrow-on-the-Hill (Platform 1),51.5792702,-0.3366561,HOH,HAROOTH,,Europe/London,2,1,910GHAROOTH,0
+9100HAROOTH2,Harrow-on-the-Hill (Platform 2),51.5792702,-0.3366561,HOH,HAROOTH,,Europe/London,2,2,910GHAROOTH,0
 9100HARTFD1,Hartford (Cheshire) (Platform 1),53.241569,-2.553519,HTF,HARTFD,,Europe/London,0,1,910GHARTFD,0
 9100HARTFD2,Hartford (Cheshire) (Platform 2),53.241569,-2.553519,HTF,HARTFD,,Europe/London,0,2,910GHARTFD,0
 9100HARWICH1,Harwich Town (Platform 1),51.9441577,1.2866273,HWC,HARWICH,,Europe/London,0,1,910GHARWICH,0
@@ -1933,6 +1938,11 @@ stop_id,stop_name,stop_lat,stop_lon,stop_code,tiploc_code,stop_desc,stop_timezon
 9100MOCHARD1,Morchard Road (Platform 1),50.8317005,-3.7761159,MRD,MOCHARD,,Europe/London,1,1,910GMOCHARD,0
 9100MONPELR1,Montpelier (Platform 1),51.4683479,-2.5886798,MTP,MONPELR,,Europe/London,1,1,910GMONPELR,0
 9100MONPELRBUS,Montpelier (Platform BUS),51.4683479,-2.5886798,MTP,MONPELR,,Europe/London,1,BUS,910GMONPELR,0
+9100MOORPK,Moor Park,51.6297793,-0.4321576,MPA,MOORPK,,Europe/London,2,,910GMOORPK,0
+9100MOORPK1,Moor Park (Platform 1),51.629808,-0.432423,MPA,MOORPK,,Europe/London,2,1,910GMOORPK,0
+9100MOORPK2,Moor Park (Platform 2),51.629799,-0.432356,MPA,MOORPK,,Europe/London,2,2,910GMOORPK,0
+9100MOORPK3,Moor Park (Platform 3),51.629839,-0.432230,ZMP,MOORPK,,Europe/London,2,3,910GMOORPK,0
+9100MOORPK4,Moor Park (Platform 4),51.629853,-0.432179,ZMP,MOORPK,,Europe/London,2,4,910GMOORPK,0
 9100MORDENS1,Morden South (Platform 1),51.395678,-0.1992399,MDS,MORDENS,,Europe/London,2,1,910GMORDENS,0
 9100MORDENS2,Morden South (Platform 2),51.395678,-0.1992399,MDS,MORDENS,,Europe/London,2,2,910GMORDENS,0
 9100MORETON1,Moreton (Dorset) (Platform 1),50.701118,-2.3138473,MTN,MORETON,,Europe/London,0,1,910GMORETON,0
@@ -2357,6 +2367,8 @@ stop_id,stop_name,stop_lat,stop_lon,stop_code,tiploc_code,stop_desc,stop_timezon
 9100RCHENEW,Roche (Platform NEW),50.4186675,-4.8307554,ROC,RCHE,,Europe/London,0,NEW,910GRCHE,0
 9100RCHEPAR,Roche (Platform PAR),50.4186675,-4.8307554,ROC,RCHE,,Europe/London,0,PAR,910GRCHE,0
 9100RCHTBUS,Rochester (Platform BUS),51.3892066,0.5072941,RTR,RCHT,,Europe/London,1,BUS,910GRCHT,0
+9100RCKMNSW1,Rickmansworth (Platform 1),51.6401841,-0.4734045,RIC,RCKMNSW,,Europe/London,2,1,910GRCKMNSW,0
+9100RCKMNSW2,Rickmansworth (Platform 2),51.6401841,-0.4734045,RIC,RCKMNSW,,Europe/London,1,2,910GRCKMNSW,0
 9100RCTRYRD1,Rectory Road (Platform 1),51.5591049,-0.0686408,REC,RCTRYRD,,Europe/London,1,1,910GRCTRYRD,0
 9100RCTRYRD2,Rectory Road (Platform 2),51.5591049,-0.0686408,REC,RCTRYRD,,Europe/London,1,2,910GRCTRYRD,0
 9100RCTRYRDBUS,Rectory Road (Platform BUS),51.5591049,-0.0686408,REC,RCTRYRD,,Europe/London,1,BUS,910GRCTRYRD,0
@@ -3267,3 +3279,4 @@ stop_id,stop_name,stop_lat,stop_lon,stop_code,tiploc_code,stop_desc,stop_timezon
 9100YTMNSTRBUS,Yetminster (Platform BUS),50.8957019,-2.5738017,YET,YTMNSTR,,Europe/London,1,BUS,910GYTMNSTR,0
 9100YTMNSTRDOR,Yetminster (Platform DOR),50.8957019,-2.5738017,YET,YTMNSTR,,Europe/London,1,DOR,910GYTMNSTR,0
 9100YTMNSTRYEO,Yetminster (Platform YEO),50.8957019,-2.5738017,YET,YTMNSTR,,Europe/London,1,YEO,910GYTMNSTR,0
+910GMOORPK,Moor Park,51.6297793,-0.4321576,ZMP,MOORPK,,Europe/London,2,,910GMOORPK,1
