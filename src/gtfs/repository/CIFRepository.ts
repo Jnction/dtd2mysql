@@ -164,6 +164,11 @@ export class CIFRepository {
           delete result['platforms'];
           result.stop_name += platform_code ? ` (Platform ${platform_code})` : '';
           result.location_type = 0;
+          // use tiploc coordinates instead of station coordinates
+          if (tiploc_entry !== undefined) {
+            result.stop_lat = tiploc_entry.stop_lat;
+            result.stop_lon = tiploc_entry.stop_lon;
+          }
           return result;
         } else {
           return stop;
