@@ -3279,4 +3279,4 @@ stop_id,stop_name,stop_lat,stop_lon,stop_code,tiploc_code,stop_desc,stop_timezon
 9100YTMNSTRBUS,Yetminster (Platform BUS),50.8957019,-2.5738017,YET,YTMNSTR,,Europe/London,1,BUS,910GYTMNSTR,0
 9100YTMNSTRDOR,Yetminster (Platform DOR),50.8957019,-2.5738017,YET,YTMNSTR,,Europe/London,1,DOR,910GYTMNSTR,0
 9100YTMNSTRYEO,Yetminster (Platform YEO),50.8957019,-2.5738017,YET,YTMNSTR,,Europe/London,1,YEO,910GYTMNSTR,0
-910GMOORPK,Moor Park,51.6297793,-0.4321576,ZMP,MOORPK,,Europe/London,2,,910GMOORPK,1
+910GMOORPK,Moor Park,51.6297793,-0.4321576,ZMP,MOORPK,,Europe/London,2,,,1
