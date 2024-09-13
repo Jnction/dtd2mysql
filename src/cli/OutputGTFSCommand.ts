@@ -29,7 +29,7 @@ export class OutputGTFSCommand implements CLICommand {
    * Turn the timetable feed into GTFS files
    */
   public async run(argv: string[]): Promise<void> {
-    this.baseDir = argv[3] || "./";
+    this.baseDir = argv[3] || ".";
 
     if (!fs.existsSync(this.baseDir)) {
       throw new Error(`Output path ${this.baseDir} does not exist.`);
@@ -81,7 +81,7 @@ export class OutputGTFSCommand implements CLICommand {
    */
   private async copy(results: object[] | Promise<object[]>, filename: string): Promise<void> {
     const rows = await results;
-    const output = this.output.open(this.baseDir + filename);
+    const output = this.output.open(`${this.baseDir}/${filename}`);
 
     console.log("Writing " + filename);
     rows.forEach(row => output.write(row));
