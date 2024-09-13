@@ -95,10 +95,10 @@ export class OutputGTFSCommand implements CLICommand {
    */
   private async copyTrips(schedules: Schedule[], serviceIds: ServiceIdIndex): Promise<any> {
     console.log("Writing trips.txt, stop_times.txt, routes.txt and shapes.txt");
-    const trips = this.output.open(this.baseDir + "trips.txt");
-    const stopTimes = this.output.open(this.baseDir + "stop_times.txt");
-    const routeFile = this.output.open(this.baseDir + "routes.txt");
-    const shapes = this.output.open(this.baseDir + "shapes.txt");
+      const trips = this.output.open(`${this.baseDir}/trips.txt`);
+      const stopTimes = this.output.open(`${this.baseDir}/stop_times.txt`);
+      const routeFile = this.output.open(`${this.baseDir}/routes.txt`);
+    const shapes = this.output.open(`${this.baseDir}/shapes.txt`);
     const routes = {};
     const writtenShapes = new Set();
 
