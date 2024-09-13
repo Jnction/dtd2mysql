@@ -97,7 +97,7 @@ export class ScheduleBuilder {
         }
       ),
       mode,
-      agencies.some((a) => a.agency_id === row.atoc_code) ? row.atoc_code : "ZZ",
+      agencies.some((a) => a.agency_id === `=${row.atoc_code}`) ? row.atoc_code : "ZZ",
       row.stp_indicator,
       mode === RouteType.Rail && row.train_class !== "S",
       row.reservations !== null
