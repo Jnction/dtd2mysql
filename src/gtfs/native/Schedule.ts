@@ -161,8 +161,8 @@ export class Schedule implements OverlayRecord {
           : tocData.LE;
     }
 
+    const callback = this.stopAtStation.bind(this);
     if (prefix === 'LO') {
-      const callback = this.stopAtStation.bind(this);
       if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
         return {name : 'Windrush line', colour : 0xEF4D5E};
       }
@@ -183,7 +183,16 @@ export class Schedule implements OverlayRecord {
         return {name : 'Suffragette line', colour : 0x39B97A};
       }
     }
-    // fixme: should I handle line names of Merseyrail
+
+    if (prefix === 'ME') {
+      if (['HNX', 'LPY', 'SDL', 'BAH', 'HLR', 'SOP', 'KKD', 'WAO', 'MAG', 'OMS', 'RIL', 'KIR', 'HBL'].some(callback)) {
+        return {name : 'Northern line', colour : 0x0266b2};
+      }
+      if (['BKQ', 'NBN', 'BID', 'WKI', 'RFY', 'PSL', 'HOO', 'ELP', 'CTR'].some(callback)) {
+        return {name : 'Wirral line', colour : 0x00a94f};
+      }
+    }
+
     return tocData[prefix ?? ''] ?? {name: rsid, colour : null};
   }
 
