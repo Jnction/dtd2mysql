@@ -21,14 +21,14 @@ export function applyAssociations(schedulesByTuid: ScheduleIndex,
       // get the date range for the associated schedules
       const assocCalendar = association.dateIndicator === DateIndicator.Next
         ? association.calendar.shiftForward()
-        : association.calendar;
+        : association.dateIndicator === DateIndicator.Previous ? association.calendar.shiftBackward() : association.calendar;
 
       // get the associated schedules inside the date range of the association
       for (const assocSchedule of findSchedules(schedulesByTuid[association.assocTUID] || [], assocCalendar)) {
         // get the date range for the target base schedule (same or previous day of associated schedule NOT the association)
         const baseCalendar = association.dateIndicator === DateIndicator.Next
           ? assocSchedule.calendar.shiftBackward()
-          : assocSchedule.calendar;
+          : association.dateIndicator === DateIndicator.Previous ? assocSchedule.calendar.shiftBackward() : assocSchedule.calendar;
 
         // find the matching base record
         const baseSchedules = findSchedules(schedulesByTuid[association.baseTUID] || [], baseCalendar);

@@ -2,7 +2,7 @@ import objectHash = require('object-hash');
 import {AgencyID} from "../file/Agency";
 import {Route, RouteType} from "../file/Route";
 import {Shape} from '../file/Shape';
-import {AtcoCode, TIPLOC} from "../file/Stop";
+import {AtcoCode, CRS, TIPLOC} from "../file/Stop";
 import {StopTime} from "../file/StopTime";
 import {Trip} from "../file/Trip";
 import {CIFRepository} from '../repository/CIFRepository';
@@ -69,6 +69,7 @@ export class Schedule implements OverlayRecord {
       shape_id: this.getShapeId(),
       wheelchair_accessible: 1,
       bikes_allowed: 0,
+      original_trip_id: this.tuid,
     };
   }
 
@@ -145,6 +146,7 @@ export class Schedule implements OverlayRecord {
         'Tring',
         'Bletchley',
         'Milton Keynes',
+        'Northampton',
         'St Albans',
         'Bedford',
         'Liverpool',
@@ -158,7 +160,39 @@ export class Schedule implements OverlayRecord {
           ? {name : 'Stansted Express', colour : 0x6b717a}
           : tocData.LE;
     }
-    // fixme: should I handle line names of Merseyrail
+
+    const callback = this.stopAtStation.bind(this);
+    if (prefix === 'LO') {
+      if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
+        return {name : 'Windrush line', colour : 0xEF4D5E};
+      }
+      if (['LST', 'HAC', 'SVS', 'ENF', 'CHN', 'CHI'].some(callback)) {
+        return {name : 'Weaver line', colour : 0x972861};
+      }
+      if (['RMF', 'UPM'].some(callback)) {
+        return {name : 'Liberty line', colour : 0x676767};
+      }
+      if (['KPA', 'SPB', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
+        return {name : 'Mildmay line', colour : 0x437EC1};
+      }
+      // I am considering Stratford - Willesden / Watford through-running services to be Mildmay line here
+      if (['EUS', 'KBN', 'SBP', 'HRW', 'WFH', 'WFJ'].some(callback)) {
+        return {name : 'Lioness line', colour : 0xF1B41C};
+      }
+      if (['HRY', 'WMW', 'LER', 'BKG'].some(callback)) {
+        return {name : 'Suffragette line', colour : 0x39B97A};
+      }
+    }
+
+    if (prefix === 'ME') {
+      if (['HNX', 'LPY', 'SDL', 'BAH', 'HLR', 'SOP', 'KKD', 'WAO', 'MAG', 'OMS', 'RIL', 'KIR', 'HBL'].some(callback)) {
+        return {name : 'Northern line', colour : 0x0266b2};
+      }
+      if (['BKQ', 'NBN', 'BID', 'WKI', 'RFY', 'PSL', 'HOO', 'ELP', 'CTR'].some(callback)) {
+        return {name : 'Wirral line', colour : 0x00a94f};
+      }
+    }
+
     return tocData[prefix ?? ''] ?? {name: rsid, colour : null};
   }
 
@@ -172,7 +206,7 @@ export class Schedule implements OverlayRecord {
     const nameAndColour = this.getNameAndColour(`${origin} → ${destination}`);
     return {
       route_id: this.id,
-      agency_id: this.operator || "ZZ",
+      agency_id: `=${this.operator || "ZZ"}`,
       route_short_name: nameAndColour.name,
       route_long_name: nameAndColour.long_name ?? null,
       route_type: this.mode,
@@ -213,5 +247,9 @@ export class Schedule implements OverlayRecord {
 
   public stopAt(location: TIPLOC): StopTime | undefined {
     return <StopTime>this.stopTimes.find(s => s.tiploc_code === location);
+  }
+  
+  public stopAtStation(station: CRS): StopTime | undefined {
+    return <StopTime>this.stopTimes.find(s => s.stop_code === station);
   }
 }

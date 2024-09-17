@@ -29,7 +29,7 @@ export class OutputGTFSCommand implements CLICommand {
    * Turn the timetable feed into GTFS files
    */
   public async run(argv: string[]): Promise<void> {
-    this.baseDir = argv[3] || "./";
+    this.baseDir = argv[3] || ".";
 
     if (!fs.existsSync(this.baseDir)) {
       throw new Error(`Output path ${this.baseDir} does not exist.`);
@@ -81,7 +81,7 @@ export class OutputGTFSCommand implements CLICommand {
    */
   private async copy(results: object[] | Promise<object[]>, filename: string): Promise<void> {
     const rows = await results;
-    const output = this.output.open(this.baseDir + filename);
+    const output = this.output.open(`${this.baseDir}/${filename}`);
 
     console.log("Writing " + filename);
     rows.forEach(row => output.write(row));
@@ -95,10 +95,10 @@ export class OutputGTFSCommand implements CLICommand {
    */
   private async copyTrips(schedules: Schedule[], serviceIds: ServiceIdIndex): Promise<any> {
     console.log("Writing trips.txt, stop_times.txt, routes.txt and shapes.txt");
-    const trips = this.output.open(this.baseDir + "trips.txt");
-    const stopTimes = this.output.open(this.baseDir + "stop_times.txt");
-    const routeFile = this.output.open(this.baseDir + "routes.txt");
-    const shapes = this.output.open(this.baseDir + "shapes.txt");
+      const trips = this.output.open(`${this.baseDir}/trips.txt`);
+      const stopTimes = this.output.open(`${this.baseDir}/stop_times.txt`);
+      const routeFile = this.output.open(`${this.baseDir}/routes.txt`);
+    const shapes = this.output.open(`${this.baseDir}/shapes.txt`);
     const routes = {};
     const writtenShapes = new Set();
 
@@ -121,8 +121,9 @@ export class OutputGTFSCommand implements CLICommand {
       trips.write(await schedule.toTrip(serviceId, routeId, this.repository));
       schedule.stopTimes.filter(r =>
           r.stop_code !== null // filter out technical stops at non-station
-          && (r.pickup_type !== 1 || r.drop_off_type !== 1) // filter out non-passenger stops
+          && (r.departure_time != null || r.arrival_time != null) // filter out non-public stops
       )
+          .map((r, index) => Object.assign(r, {stop_sequence: index}))
           .forEach(r => {
             const {stop_code, tiploc_code, ...remaining} = r;
             stopTimes.write(remaining);

@@ -36,12 +36,7 @@ export class ImportFeedCommand implements CLICommand {
    * Do the import and then shut down the connection pool
    */
   public async run(argv: string[]): Promise<void> {
-    try {
-      await this.doImport(argv[3]);
-    }
-    catch (err) {
-      console.error(err);
-    }
+    await this.doImport(argv[3]);
 
     return this.end();
   }
@@ -132,7 +127,7 @@ export class ImportFeedCommand implements CLICommand {
     const file = this.getFeedFile(filename);
     const tables = await this.tables(file);
     const tableStream = new MySQLStream(filename, file, tables);
-    const stream = readFile(this.tmpFolder + filename).pipe(tableStream);
+    const stream = readFile(`${this.tmpFolder}/${filename}`).pipe(tableStream);
 
     try {
       await streamToPromise(stream);

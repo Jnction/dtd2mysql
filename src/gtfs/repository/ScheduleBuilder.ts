@@ -1,15 +1,17 @@
 import {Query} from 'mysql2';
+import {viaText} from '../../../config/gtfs/vias';
+import {RouteType} from "../file/Route";
 import {CRS} from '../file/Stop';
+import {StopTime} from "../file/StopTime";
 import {IdGenerator, STP} from "../native/OverlayRecord";
 import {Schedule} from "../native/Schedule";
-import {RouteType} from "../file/Route";
-import moment = require("moment");
 import {ScheduleCalendar} from "../native/ScheduleCalendar";
-import {CIFRepository, ScheduleStopTimeRow} from "./CIFRepository";
-import {StopTime} from "../file/StopTime";
+import {CIFRepository, ScheduleStopTimeRow, ViaText} from "./CIFRepository";
+import moment = require("moment");
+import { agencies } from "../../../config/gtfs/agency";
 
-const pickupActivities = ["T ", "TB", "U "];
-const dropOffActivities = ["T ", "TF", "D "];
+const pickupActivities = ["T ", "TB", "TF", "U "];
+const dropOffActivities = ["T ", "TB", "TF", "D "];
 const coordinatedActivity = ["R "];
 const notAdvertised = "N ";
 
@@ -95,7 +97,7 @@ export class ScheduleBuilder {
         }
       ),
       mode,
-      row.atoc_code,
+      agencies.some((a) => a.agency_id === `=${row.atoc_code}`) ? row.atoc_code : "ZZ",
       row.stp_indicator,
       mode === RouteType.Rail && row.train_class !== "S",
       row.reservations !== null
@@ -103,28 +105,24 @@ export class ScheduleBuilder {
   }
 
   private createStop(row: ScheduleStopTimeRow, stopId: number, departHour: number): StopTime {
-    let arrivalTime, departureTime;
+    let arrivalTime : string | null = null;
+    let departureTime : string | null = null;
 
     // if either public time is set, use those
     if (row.public_arrival_time || row.public_departure_time) {
       arrivalTime = this.formatTime(row.public_arrival_time, departHour);
       departureTime = this.formatTime(row.public_departure_time, departHour);
     }
-    // if no public time at all (no set down or pick) use the scheduled time
-    else {
-      arrivalTime = this.formatTime(row.scheduled_arrival_time, departHour);
-      departureTime = this.formatTime(row.scheduled_departure_time, departHour);
-    }
 
     const activities = (row.activity ?? '').match(/.{1,2}/g) || [] as string[];
     const pickup = pickupActivities.find(a => activities.includes(a)) && !activities.includes(notAdvertised) ? 0 : 1;
     const coordinatedDropOff = coordinatedActivity.find(a => activities.includes(a)) ? 3 : 0;
-    const dropOff = dropOffActivities.find(a => activities.includes(a)) ? 0 : 1;
+    const dropOff = dropOffActivities.find(a => activities.includes(a)) && !activities.includes(notAdvertised) ? 0 : 1;
 
     return {
       trip_id: this.getTripId(row),
-      arrival_time: (arrivalTime || departureTime),
-      departure_time: (departureTime || arrivalTime),
+      arrival_time: activities.includes(notAdvertised) ? null : arrivalTime || departureTime,
+      departure_time: activities.includes(notAdvertised) ? null : departureTime || arrivalTime,
       stop_id: row.atco_code,
       stop_code: row.crs_code,
       tiploc_code: row.location,
@@ -165,17 +163,16 @@ export class ScheduleBuilder {
   }
 
   public static async fillStopHeadsigns(schedule : Schedule, repository : CIFRepository) : Promise<void> {
+    // use the Darwin timetable reference to generate "via points" 
     const atoc_code = schedule.operator;
     const stops = schedule.stopTimes;
     if (stops.length === 0) return;
 
     const destination_id = stops[stops.length - 1].stop_id;
+    const destination_tiploc = stops[stops.length - 1].tiploc_code;
     const destination_name = await repository.getStopName(destination_id);
-    const stations = await repository.getStops();
-
+    
     for (let i = 0; i < stops.length; ++i) {
-      const stop = stops[i];
-      const stop_code = stop.stop_code ?? '';
 
       /**
        * Find the index of first call in the stop list after the current stop
@@ -188,392 +185,246 @@ export class ScheduleBuilder {
         const result = stops.findIndex((stop, index) => stop.stop_code === stop_code && index >= start);
         return result === -1 ? null : result;
       }
-      // Sutton (via Mitcham Junction) / Sutton (via Wimbledon)
-      if (stops[stops.length - 1].stop_code === 'SUO' && atoc_code === 'TL') {
-        const index = findCallingIndex('STE', i);
-        const wimbledon = findCallingIndex('WIM');
-        const mitcham = findCallingIndex('MIJ');
-        if (index !== null) {
-          stops[i].stop_headsign = wimbledon !== null ? 'Sutton (via Wimbledon)' : mitcham !== null ? 'Sutton (via Mitcham Junction)' : null;
+
+      // False destinations still have to be hardcoded currently
+      // TODO: guess false destinations from Darwin timetable data instead of hardcoding them
+      /**
+       * Find the index of the false destination
+       */
+      function getFalseDestinationIndex() {
+        // https://www.railforums.co.uk/threads/services-advertised-as-terminating-at-penultimate-station.252431/post-6453655
+        if (atoc_code === 'SW') {
+          const strawberry_hill = findCallingIndex('STW');
+          const twickenham = findCallingIndex('TWI');
+          const richmond = findCallingIndex('RMD');
+          const hounslow = findCallingIndex('HOU');
+          const chiswick = findCallingIndex('CHK');
+          const kingston = findCallingIndex('KNG');
+          const teddington = findCallingIndex('TED');
+          const staines = findCallingIndex('SNS');
+          const wimbledon = findCallingIndex('WIM');
+          const barnes_bridge = findCallingIndex('BNI');
+          const brentford = findCallingIndex('BFD');
+          const mortlake = findCallingIndex('MTL');
+          const barnes = findCallingIndex('BNS');
+          const addlestone = findCallingIndex('ASN');
+
+          // Kingston loop clockwise
+          if (
+              ['WAT', 'VXH', 'CLJ'].includes(stop_code)
+              && wimbledon !== null && strawberry_hill !== null && wimbledon < strawberry_hill && staines === null
+          ) {
+            return strawberry_hill;
+          }
+          if (kingston !== null && richmond !== null && kingston < richmond) {
+            return richmond;
+          }
+          if (kingston !== null && chiswick !== null && kingston < chiswick) {
+            return chiswick;
+          }
+
+          // Kingston loop anti-clockwise
+          if (
+              ['WAT', 'VXH', 'QRB', 'CLJ'].includes(stop_code)
+              && teddington !== null && strawberry_hill !== null && twickenham !== null && twickenham < strawberry_hill
+          ) {
+            return teddington;
+          }
+          if (wimbledon !== null && (
+              twickenham !== null && twickenham < wimbledon || stop_code === 'TWI'
+          )) {
+            return wimbledon;
+          }
+
+          // Hounslow loop clockwise
+          if (
+              hounslow !== null && richmond !== null && richmond < hounslow 
+              && ['WAT', 'VXH', 'QRB', 'CLJ', 'WNT', 'PUT', 'BNS'].includes(stop_code)
+          ) {
+            return hounslow;
+          }
+          if (chiswick !== null && (stop_code === 'TWI' || twickenham !== null && twickenham < chiswick)) {
+            return chiswick;
+          }
+          if (stop_code === 'WTN' && barnes_bridge !== null) {
+            return barnes_bridge;
+          }
+
+          // Hounslow loop anti-clockwise
+          if (hounslow !== null && brentford !== null && brentford < hounslow && staines === null) {
+            return hounslow;
+          }
+          if (hounslow !== null && mortlake !== null && hounslow < mortlake) {
+            return mortlake;
+          }
+
+          // Weybridge (via Hounslow) service
+          if (stop_code === 'WAT' && addlestone !== null) {
+            return addlestone;
+          }
+          if (addlestone !== null && barnes !== null && addlestone < barnes) {
+            return barnes;
+          }
         }
+
+        if (atoc_code === 'SE') {
+          const dartford = findCallingIndex('DFD');
+          const woolwich = findCallingIndex('WWA');
+          const bexleyheath = findCallingIndex('BXH');
+          const sidcup = findCallingIndex('SID');
+          const slade_green = findCallingIndex('SGR');
+          const eltham = findCallingIndex('ELW');
+          const crayford = findCallingIndex('CRY');
+          const barnehurst = findCallingIndex('BNH');
+
+          // rounder via Woolwich first
+          if (woolwich !== null && slade_green !== null && woolwich < slade_green && dartford === null) {
+            return slade_green;
+          }
+          if (slade_green !== null && eltham !== null && slade_green < eltham) {
+            return eltham;
+          }
+          if (slade_green !== null && sidcup !== null && slade_green < sidcup) {
+            return sidcup;
+          }
+
+          // rounder via Bexleyheath first
+          if (bexleyheath !== null && eltham !== null && eltham < bexleyheath && dartford === null) {
+            if (slade_green !== null && bexleyheath < slade_green) {
+              return slade_green;
+            }
+            if (barnehurst !== null && bexleyheath < barnehurst) {
+              return barnehurst;
+            }
+          }
+          if (barnehurst !== null || stop_code === 'BNH') {
+            if (woolwich !== null && (barnehurst ?? i) < woolwich) {
+              return woolwich;
+            }
+            if (sidcup !== null && (barnehurst ?? i) < sidcup) {
+              return sidcup;
+            }
+          }
+
+          // rounder via Sidcup first
+          if (sidcup !== null && dartford === null) {
+            if (slade_green !== null && sidcup < slade_green) {
+              return slade_green;
+            }
+            if (crayford !== null && sidcup < crayford) {
+              return crayford;
+            }
+          }
+          if (crayford !== null || stop_code === 'CRY') {
+            if (woolwich !== null && (crayford ?? i) < woolwich) {
+              return woolwich;
+            }
+            if (eltham !== null && (crayford ?? i) < eltham) {
+              return eltham;
+            }
+          }
+
+          const ashford = findCallingIndex('AFK');
+          const sandwich = findCallingIndex('SDW');
+          const gravesend = findCallingIndex('GRV');
+          const ramsgate = findCallingIndex('RAM');
+          const folkestone_west = findCallingIndex('FKW');
+          const margate = findCallingIndex('MAR');
+          const canterbury_west = findCallingIndex('CBW');
+          // Kent coast rounder anti clockwise
+          if (
+              sandwich !== null 
+              && (ashford !== null && ashford < sandwich || stop_code === 'AFK') 
+              && canterbury_west === null /* https://github.com/planarnetwork/dtd2mysql/issues/80 */) {
+            return sandwich;
+          }
+          if (gravesend !== null && (stop_code === 'SDW' || (sandwich !== null && sandwich < gravesend))) {
+            return gravesend;
+          }
+
+          // Kent coast rounder clockwise
+          if (ramsgate !== null && gravesend !== null && gravesend < ramsgate) {
+            return ramsgate;
+          }
+          if (folkestone_west !== null && margate !== null && margate < folkestone_west) {
+            return folkestone_west;
+          }
+        }
+        
+        if (atoc_code === 'ME') {
+          // Wirral line
+          const moorfields = findCallingIndex('MRF');
+          if (moorfields !== null) {
+            const liverpool_central = findCallingIndex('LVC', moorfields);
+            if (liverpool_central !== null) {
+              if (findCallingIndex('LVJ', liverpool_central) !== null) {
+                return liverpool_central;
+              }
+            }
+          }
+        }
+        
+        if (atoc_code === 'AW') {
+          // Merthyr line
+          const ninian_park = findCallingIndex('NNP', i);
+          if (ninian_park !== null) {
+            const cardiff_central = findCallingIndex('CDF', ninian_park);
+            if (cardiff_central !== null) {
+              const radyr = findCallingIndex('RDR', cardiff_central);
+              if (radyr !== null) {
+                return cardiff_central;
+              }
+            }
+          }
+        }
+
+        {
+          const huddersfield = findCallingIndex('HUD', i);
+          if (huddersfield !== null) {
+            const brighouse = findCallingIndex('BGH', huddersfield);
+            if (brighouse !== null) {
+              if (findCallingIndex('HUD', brighouse) /* again */) {
+                return brighouse;
+              }
+            }
+          }
+        }
+        return null;
       }
 
-      if (stop_code === 'SUO' && atoc_code === 'TL') {
-        const wimbledon = findCallingIndex('WIM');
-        const mitcham = findCallingIndex('MIJ');
-        stops[0].stop_headsign = wimbledon !== null ? `${destination_name} (via Wimbledon)` : mitcham !== null ? `${destination_name} (via Mitcham Junction)` : null;
-      }
+      const stop = stops[i];
+      const stop_code = stop.stop_code ?? '';
+      const false_destination_index = getFalseDestinationIndex();
+      const false_destination = false_destination_index === null ? null : await repository.getStopName(stops[false_destination_index].stop_id);
 
-      // https://www.railforums.co.uk/threads/services-advertised-as-terminating-at-penultimate-station.252431/post-6453655
-      if (atoc_code === 'SW') {
-        const strawberry_hill = findCallingIndex('STW');
-        const twickenham = findCallingIndex('TWI');
-        const richmond = findCallingIndex('RMD');
-        const hounslow = findCallingIndex('HOU');
-        const chiswick = findCallingIndex('CHK');
-        const kingston = findCallingIndex('KNG');
-        const teddington = findCallingIndex('TED');
-        const staines = findCallingIndex('SNS');
-        const wimbledon = findCallingIndex('WIM');
-        const barnes_bridge = findCallingIndex('BNI');
-        const brentford = findCallingIndex('BFD');
-        const mortlake = findCallingIndex('MTL');
-        const barnes = findCallingIndex('BNS');
-        const addlestone = findCallingIndex('ASN');
+      const via_tiplocs = stops.slice(i + 1, false_destination_index ?? -1)
+          .filter(s => s.arrival_time !== null)
+          .map(s => s.tiploc_code)
 
-        const effingham_junction = findCallingIndex('EFF');
-        const cobham = findCallingIndex('CSD');
-        const epsom = findCallingIndex('EPS');
-        const woking = findCallingIndex('WOK');
-
-        const winchester = findCallingIndex('WIN');
-        const guildford = findCallingIndex('GLD');
-        const basingstoke = findCallingIndex('BSK');
-
-        // Kingston loop clockwise
-        if (['WAT', 'VXH', 'CLJ'].includes(stop_code) && wimbledon !== null && strawberry_hill !== null && wimbledon < strawberry_hill && staines === null) {
-          stop.stop_headsign ??= 'Strawberry Hill (via Wimbledon)';
-        }
-        if (kingston !== null && richmond !== null && kingston < richmond) {
-          stop.stop_headsign ??= 'Richmond';
-        }
-        if (kingston !== null && chiswick !== null && kingston < chiswick) {
-          stop.stop_headsign ??= 'Chiswick';
-        }
-
-        // Kingston loop anti-clockwise
-        if (['WAT', 'VXH', 'QRB', 'CLJ'].includes(stop_code) && strawberry_hill !== null && twickenham !== null && twickenham < strawberry_hill) {
-          const false_destination = teddington !== null ? 'Teddington' : destination_name;
-          if (richmond !== null) {
-            stop.stop_headsign ??= `${false_destination} (via Richmond)`;
-          }
-          if (hounslow !== null) {
-            stop.stop_headsign ??= `${false_destination} (via Hounslow)`;
-          }
-        }
-        if (wimbledon !== null && (twickenham !== null && twickenham < wimbledon || stop_code === 'TWI')) {
-          stop.stop_headsign ??= 'Wimbledon';
-        }
-
-        // Kingston loop between Kingston and Strawberry Hill
-        if (['KNG', 'HMW', 'TED', 'STW', 'SHP', 'UPH', 'SUU', 'KMP', 'HMP', 'FLW'].includes(stop_code) && ['WAT', 'CLJ'].includes(destination_id)) {
-          if (richmond !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Richmond)`;
-          }
-          if (hounslow !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Hounslow)`;
-          }
-          if (wimbledon !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Wimbledon)`;
-          }
-        }
-
-        // Hounslow loop clockwise
-        if (hounslow !== null && richmond !== null && richmond < hounslow && ['WAT', 'VXH', 'QRB', 'CLJ', 'WNT', 'PUT', 'BNS'].includes(stop_code)) {
-          stop.stop_headsign ??= 'Hounslow (via Richmond)';
-        }
-        if (chiswick !== null && (stop_code === 'TWI' || twickenham !== null && twickenham < chiswick)) {
-          stop.stop_headsign ??= 'Chiswick';
-        }
-        if (stop_code === 'WTN' && barnes_bridge !== null) {
-          stop.stop_headsign ??= 'Barnes Bridge';
-        }
-
-        // Hounslow loop anti-clockwise
-        if (hounslow !== null && brentford !== null && brentford < hounslow && staines === null) {
-          if (['WAT', 'VXH', 'QRB', 'CLJ', 'WNT', 'PUT', 'BNS'].includes(stop_code)) {
-            stop.stop_headsign ??= 'Hounslow (via Brentford)';
-          } else {
-            stop.stop_headsign ??= 'Hounslow';
-          }
-        }
-        if (hounslow !== null && mortlake !== null && hounslow < mortlake) {
-          stop.stop_headsign ??= 'Mortlake';
-        }
-
-        if (stop_code === 'HOU' && ['WAT', 'CLJ'].includes(destination_id)) {
-          if (brentford !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Brentford)`;
-          }
-          if (richmond !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Richmond)`;
-          }
-        }
-
-        // Weybridge (via Hounslow) service
-        if (stop_code === 'WAT' && addlestone !== null) {
-          stop.stop_headsign ??= 'Addlestone';
-        }
-        if (['WYB', 'WOK'].includes(destination_id) && staines !== null && ['VXH', 'QRB', 'CLJ'].includes(stop_code)) {
-          stop.stop_headsign ??= `${destination_name} (via Staines)`;
-        }
-        if (addlestone !== null && barnes !== null && addlestone < barnes) {
-          stop.stop_headsign ??= 'Barnes';
-        }
-
-        // Waterloo - Guildford services
-        if (
-            ['GLD', 'EFF'].includes(destination_id) && ['WAT', 'VXH', 'CLJ', 'EAD', 'WIM', 'RAY', 'NEM', 'BRS', 'SUR'].includes(stop_code)
-            || (stop_code === 'GLD' || effingham_junction !== null && i <= effingham_junction) && ['CLJ', 'WAT'].includes(destination_id)
-        ) {
-          if (woking !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Woking)`;
-          }
-          if (cobham !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Cobham)`;
-          }
-          if (epsom !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Epsom)`;
-          }
-        }
-
-        // Waterloo - Portsmouth services
-        if (['FTN', 'PMS', 'PMH'].includes(destination_id)) {
-          if (guildford !== null && stop_code !== 'WPL') {
-            stop.stop_headsign ??= `${destination_name} (via Guildford)`;
-          }
-          // the NRE app shows via Basingstoke but the PIDS shows via Winchester
-          if (winchester !== null && (woking !== null || ['WAT', 'CLJ'].includes(stop_code))) {
-            stop.stop_headsign ??= `${destination_name} (via Winchester)`;
-          }
-        }
-        if (['FTN', 'PMS', 'PMH'].includes(stop_code) && ['WOK', 'SUR', 'WIM', 'CLJ', 'WAT'].includes(destination_id)) {
-          if (guildford !== null) stop.stop_headsign ??= `${destination_name} (via Guildford)`;
-          if (winchester !== null) stop.stop_headsign ??= `${destination_name} (via Winchester)`;
-        }
-      }
-
-      if (atoc_code === 'SE') {
-        const dartford = findCallingIndex('DFD');
-        const woolwich = findCallingIndex('WWA');
-        const bexleyheath = findCallingIndex('BXH');
-        const sidcup = findCallingIndex('SID');
-        const lewisham = findCallingIndex('LEW');
-        const greenwich = findCallingIndex('GNW');
-        const slade_green = findCallingIndex('SGR');
-        const eltham = findCallingIndex('ELW');
-        const crayford = findCallingIndex('CRY');
-        const barnehurst = findCallingIndex('BNH');
-        const charlton = findCallingIndex('CTN');
-        const hither_green = findCallingIndex('HGR');
-        const ladywell = findCallingIndex('LAD');
-
-        // 3 routes between London Bridge and Dartford
-        if (dartford !== null || stop_code === 'DFD') {
-          if (['CHX', 'LBG', 'CST', 'VIC', 'BFR'].includes(destination_id)) {
-            if (sidcup !== null) {
-              if (lewisham !== null) {
-                stop.stop_headsign ??= `${destination_name} (via Sidcup & Lewisham)`;
-              }
-              stop.stop_headsign ??= `${destination_name} (via Sidcup)`;
+      const via = viaText[stop_code]?.reduce(
+        // The wiki says that:
+        // False destinations aren't considered for the purposes of determining the via text, 
+        // but would still be displayed (e.g. at Leeds, the Leeds-York via Harrogate service would be displayed as "Poppleton via Harrogate").
+        // 
+        // however, it is not true in the real world. It is displayed as Poppleton only despite an entry of Leeds-York via Harrogate in the XML.
+        (carry : ViaText[string][number] | null, item) => {
+          const loc1index = via_tiplocs.indexOf(item.Loc1);
+          const loc2index = item.Loc2 === null ? null : via_tiplocs.indexOf(item.Loc2);
+          if (item.At === stop_code && item.Dest === (false_destination_index === null ? destination_tiploc : stops[false_destination_index].tiploc_code)
+              && loc1index >= 0 && (item.Loc2 === null || loc2index! >= 0)
+              && (item.Loc2 === null || loc2index! > loc1index)) {
+            if (carry === null) {
+              return item;
             }
-            if (bexleyheath !== null) {
-              stop.stop_headsign ??= `${destination_name} (via Bexleyheath)`;
-            }
-            if (woolwich !== null) {
-              if (greenwich !== null) {
-                stop.stop_headsign ??= `${destination_name} (via Woolwich & Greenwich)`;
-              } else if (lewisham !== null) {
-                stop.stop_headsign ??= `${destination_name} (via Woolwich & Lewisham)`;
-              } else {
-                stop.stop_headsign ??= `${destination_name} (via Woolwich)`;
-              }
-            }
+            const carryIndex = via_tiplocs.indexOf(carry.Loc1);
+            return loc1index < carryIndex ? item : carry;
           }
-          if (['CHX', 'WAE', 'LBG', 'CST', 'NWX', 'SAJ'].includes(stop_code)) {
-            if (sidcup !== null) {
-              if (lewisham !== null) {
-                stop.stop_headsign ??= `${destination_name} (via Lewisham & Sidcup)`;
-              }
-              stop.stop_headsign ??= `${destination_name} (via Sidcup)`;
-            }
-            if (bexleyheath !== null) {
-              stop.stop_headsign ??= `${destination_name} (via Bexleyheath)`;
-            }
-            if (woolwich !== null) {
-              if (greenwich !== null) {
-                stop.stop_headsign ??= `${destination_name} (via Greenwich & Woolwich)`;
-              } else if (lewisham !== null) {
-                stop.stop_headsign ??= `${destination_name} (via Lewisham & Woolwich)`;
-              } else {
-                stop.stop_headsign ??= `${destination_name} (via Woolwich)`;
-              }
-            }
-          }
-          if (dartford !== null && (lewisham !== null && lewisham < dartford || ['LEW', 'BKH'].includes(stop_code))) {
-            if (sidcup !== null) {
-              stop.stop_headsign ??= `${destination_name} (via Sidcup)`;
-            }
-            if (bexleyheath !== null) {
-              stop.stop_headsign ??= `${destination_name} (via Bexleyheath)`;
-            }
-            if (woolwich !== null) {
-              stop.stop_headsign ??= `${destination_name} (via Woolwich)`;
-            }
-          }
-        }
-
-        // rounder via Woolwich first
-        if (woolwich !== null && slade_green !== null && woolwich < slade_green && dartford === null) {
-          if (['CHX', 'WAE', 'LBG', 'CST'].includes(stop_code)) {
-            if (greenwich !== null) {
-              stop.stop_headsign ??= `Slade Green (via Greenwich & Woolwich)`;
-            }
-            if (lewisham !== null) {
-              stop.stop_headsign ??= `Slade Green (via Lewisham & Woolwich)`;
-            }
-          }
-          if (lewisham !== null && lewisham < woolwich || ['LEW', 'BKH'].includes(stop_code)) {
-            stop.stop_headsign ??= 'Slade Green (via Woolwich)';
-          }
-          stop.stop_headsign ??= 'Slade Green';
-        }
-        if (slade_green !== null && eltham !== null && slade_green < eltham) {
-          stop.stop_headsign ??= 'Eltham';
-        }
-        if (slade_green !== null && sidcup !== null && slade_green < sidcup) {
-          stop.stop_headsign ??= 'Sidcup';
-        }
-        if (stop_code === 'SGR') {
-          if (bexleyheath !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Bexleyheath)`;
-          }
-          if (sidcup !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Sidcup)`;
-          }
-        }
-
-        // rounder via Bexleyheath first
-        if (bexleyheath !== null && eltham !== null && eltham < bexleyheath && dartford === null) {
-          const viaString = stop_code === 'KDB' ? '' : ' (via Bexleyheath)';
-          if (slade_green !== null && bexleyheath < slade_green) {
-            stop.stop_headsign ??= `Slade Green${viaString}`;
-          }
-          if (barnehurst !== null && bexleyheath < barnehurst) {
-            stop.stop_headsign ??= `Barnehurst${viaString}`;
-          }
-        }
-        if (barnehurst !== null || stop_code === 'BNH') {
-          if (woolwich !== null && (barnehurst ?? i) < woolwich) {
-            stop.stop_headsign ??= 'Woolwich Arsenal';
-          }
-          if (sidcup !== null && (barnehurst ?? i) < sidcup) {
-            stop.stop_headsign ??= 'Sidcup';
-          }
-        }
-
-        // rounder via Sidcup first
-        if (sidcup !== null && dartford === null) {
-          const viaString =
-              ['CHX', 'WAE', 'LBG', 'CST', 'NWX', 'SAJ'].includes(stop_code)
-                ? lewisham !== null && lewisham < sidcup ? ' (via Lewisham & Sidcup)' : ' (via Sidcup)'
-                : lewisham !== null && lewisham < sidcup || stop_code === 'LEW' ? ' (via Sidcup)' : '';
-          if (slade_green !== null && sidcup < slade_green) {
-            stop.stop_headsign ??= `Slade Green${viaString}`;
-          }
-          if (crayford !== null && sidcup < crayford) {
-            stop.stop_headsign ??= `Crayford${viaString}`;
-          }
-        }
-        if (crayford !== null || stop_code === 'CRY') {
-          if (woolwich !== null && (crayford ?? i) < woolwich) {
-            stop.stop_headsign ??= 'Woolwich Arsenal';
-          }
-          if (eltham !== null && (crayford ?? i) < eltham) {
-            stop.stop_headsign ??= 'Eltham';
-          }
-        }
-
-        // Woolwich line westbound via Greenwich or Lewisham
-        if ((charlton !== null || stop_code === 'CTN') && ['LBG', 'CST', 'CHX'].includes(destination_id)) {
-          const lewisham_after_charlton = findCallingIndex('LEW', (charlton ?? i) + 1);
-          if (greenwich !== null && (charlton ?? i) < greenwich) {
-            stop.stop_headsign ??= `${destination_name} (via Greenwich)`;
-          }
-          if (lewisham_after_charlton !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Lewisham)`;
-          }
-        }
-
-        // Sidcup line or Hayes line via Lewisham
-        const fork = hither_green ?? ladywell;
-        const at_or_before_fork = fork !== null || ['HGR', 'LAD'].includes(stop_code);
-        if (['LBG', 'CST', 'CHX'].includes(destination_id)) {
-          if (at_or_before_fork && findCallingIndex('LEW', fork ?? i) !== null) {
-            stop.stop_headsign ??= `${destination_name} (via Lewisham)`;
-          }
-        }
-        if (at_or_before_fork && lewisham !== null && lewisham < (fork ?? i)) {
-          stop.stop_headsign ??= `${destination_name} (via Lewisham)`;
-        }
-
-        const ashford = findCallingIndex('AFK');
-        const sandwich = findCallingIndex('SDW');
-        const gravesend = findCallingIndex('GRV');
-        const ramsgate = findCallingIndex('RAM');
-        const folkestone_west = findCallingIndex('FKW');
-        const margate = findCallingIndex('MAR');
-        const chatham = findCallingIndex('CTM');
-        const dover = findCallingIndex('DVP');
-        const canterbury_west = findCallingIndex('CBW');
-        // Kent coast rounder anti clockwise
-        if (sandwich !== null && (ashford !== null && ashford < sandwich || stop_code === 'AFK')
-            && canterbury_west === null /* https://github.com/planarnetwork/dtd2mysql/issues/80 */
-        ) {
-          stop.stop_headsign ??= 'Sandwich';
-        }
-        if (gravesend !== null && (stop_code === 'SDW' || (sandwich !== null && sandwich < gravesend))) {
-          stop.stop_headsign ??= 'Gravesend';
-        }
-
-        // Kent coast rounder clockwise
-        if (ramsgate !== null && gravesend !== null && gravesend < ramsgate) {
-          stop.stop_headsign ??= 'Ramsgate';
-        }
-        if (folkestone_west !== null && margate !== null && margate < folkestone_west) {
-          stop.stop_headsign ??= 'Folkestone West';
-        }
-
-        if (chatham !== null && (stop_code === 'MAR' || margate !== null && margate < chatham)) {
-          stop.stop_headsign ??= `${destination_name} (via Chatham)`;
-        }
-        if (sandwich !== null && dover !== null && ashford !== null && dover < ashford && sandwich < dover) {
-          stop.stop_headsign ??= `${destination_name} (via Dover Priory)`;
-        }
-        if (canterbury_west !== null && (
-            ashford !== null && (canterbury_west < ashford && !['MSR', 'STU'].includes(stop_code))
-            || ramsgate !== null && (canterbury_west < ramsgate && !['WYE', 'CIL', 'CRT'].includes(stop_code))
-        )) {
-          stop.stop_headsign ??= `${destination_name} (via Canterbury West)`;
-        }
-      }
-
-      if (atoc_code === 'LO') {
-        if (destination_id === 'CLJ') {
-          for (const stop of stops) {
-            if (['HHY', 'CNN'].includes(stop.stop_id.substring(0, 3))) {
-              if (findCallingIndex('WIJ')) {
-                stop.stop_headsign = 'Clapham Junction (via Willesden Junction)';
-              }
-              if (findCallingIndex('SQE')) {
-                stop.stop_headsign = 'Clapham Junction (via Surrey Quays)';
-              }
-            }
-          }
-        }
-        if (destination_id === 'HHY') {
-          for (const stop of stops) {
-            if (stop.stop_id.substring(0, 3) === 'CLJ') {
-              if (findCallingIndex('WIJ')) {
-                stop.stop_headsign = 'Highbury & Islington (via Willesden Junction)';
-              }
-              if (findCallingIndex('SQE')) {
-                stop.stop_headsign = 'Highbury & Islington (via Surrey Quays)';
-              }
-            }
-          }
-        }
-      }
+          return carry;
+        },
+        null,
+      )?.Viatext;
+      
+      stop.stop_headsign = via !== undefined ? `${false_destination ?? destination_name} (${via})` : false_destination;
     }
   }
 }

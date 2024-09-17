@@ -3,7 +3,7 @@ import {StopTime} from "../file/StopTime";
 import {formatDuration} from "./Duration";
 import {IdGenerator, OverlayRecord, STP, TUID} from "./OverlayRecord";
 import {Schedule} from "./Schedule";
-import {ScheduleCalendar} from "./ScheduleCalendar";
+import {NO_DAYS, ScheduleCalendar} from "./ScheduleCalendar";
 import moment = require("moment");
 
 export class Association implements OverlayRecord {
@@ -44,9 +44,14 @@ export class Association implements OverlayRecord {
    * association does not and create additional schedules to cover those periods.
    */
   public apply(base: Schedule, assoc: Schedule, idGenerator: IdGenerator): Schedule[] {
-    const assocCalendar = this.dateIndicator === DateIndicator.Next ? this.calendar.shiftForward() : this.calendar;
+    const assocCalendar = this.dateIndicator === DateIndicator.Next ? this.calendar.shiftForward() : 
+        this.dateIndicator === DateIndicator.Previous ? this.calendar.shiftBackward() : this.calendar;
     const mergedBase = this.mergeSchedules(base, assoc);
-    const schedules = mergedBase !== null ? [mergedBase] : [];
+    if (mergedBase === null) {
+      // the association does not apply
+      return [assoc];
+    }
+    const schedules = [mergedBase];
 
     // exclude the associated schedule from running when the association is active
     const excludeCalendar = assoc.calendar.addExcludeDays(assocCalendar);
@@ -71,7 +76,12 @@ export class Association implements OverlayRecord {
 
     // this should never happen, unless data feed is corrupted. It will prevent us from update failure
     if (baseStopTime === undefined || assocStopTime === undefined) {
-      return assoc;
+      return null;
+    }
+    
+    // if the split or merge happens at the start or the end of the trip, ignore the association
+    if (baseStopTime === base.stopTimes[0] || baseStopTime === base.stopTimes[base.stopTimes.length - 1]) {
+      return null;
     }
 
     if (this.assocType === AssociationType.Split) {
@@ -91,18 +101,21 @@ export class Association implements OverlayRecord {
 
     let stopSequence: number = 1;
     const calendar = this.dateIndicator === DateIndicator.Next ? assoc.calendar.shiftBackward() : assoc.calendar;
+    const thisCalendar = this.dateIndicator === DateIndicator.Previous ? this.calendar.shiftBackward() : this.calendar; 
 
     const newCalendar = calendar.clone(
-        moment.max(this.calendar.runsFrom, calendar.runsFrom),
-        moment.min(this.calendar.runsTo, calendar.runsTo)
+        moment.max(thisCalendar.runsFrom, calendar.runsFrom),
+        moment.min(thisCalendar.runsTo, calendar.runsTo),
+        NO_DAYS,
+        {...calendar.excludeDays, ...thisCalendar.excludeDays}
     );
     if (newCalendar === null) return null;
     const tripId = `${tuid}_${moment(newCalendar.runsFrom).format('YYYYMMDD')}_${moment(newCalendar.runsTo).format('YYYYMMDD')}`;
 
     const stops = [
-      ...start.map(s => cloneStop(s, stopSequence++, tripId, undefined, false, this.assocType === AssociationType.Split)),
-      cloneStop(assocStop, stopSequence++, tripId, undefined, this.assocType === AssociationType.Join, this.assocType === AssociationType.Split),
-      ...end.map(s => cloneStop(s, stopSequence++, tripId, assocStop, this.assocType === AssociationType.Join, false))
+      ...start.map(s => cloneStop(s, stopSequence++, tripId, false)),
+      cloneStop(assocStop, stopSequence++, tripId, false),
+      ...end.map(s => cloneStop(s, stopSequence++, tripId, this.assocType === AssociationType.Split && this.dateIndicator === DateIndicator.Next || this.assocType === AssociationType.Join && this.dateIndicator === DateIndicator.Previous))
     ];
 
     return new Schedule(
@@ -125,21 +138,19 @@ export class Association implements OverlayRecord {
    * Take the arrival time of the first stop and the departure time of the second stop and put them into a new stop
    */
   public mergeAssociationStop(arrivalStop: StopTime, departureStop: StopTime): StopTime {
-    let arrivalTime = moment.duration(arrivalStop.arrival_time);
-    let departureTime = moment.duration(departureStop.departure_time);
+    let arrivalTime = arrivalStop.arrival_time === null ? null : moment.duration(arrivalStop.arrival_time);
+    let departureTime = departureStop.departure_time === null ? null : moment.duration(departureStop.departure_time);
 
-    if (arrivalTime.asSeconds() > departureTime.asSeconds()) {
-      if (this.dateIndicator === DateIndicator.Next) {
-        departureTime.add(1, "days");
-      }
-      else {
-        arrivalTime = moment.duration(departureStop.arrival_time);
-      }
+    if (this.dateIndicator !== DateIndicator.Same) {
+      departureTime?.add(1, "days");
     }
 
+    arrivalTime = arrivalTime || departureTime;
+    departureTime = departureTime || arrivalTime;
+    
     return Object.assign({}, arrivalStop, {
-      arrival_time: formatDuration(arrivalTime.asSeconds()),
-      departure_time: formatDuration(departureTime.asSeconds()),
+      arrival_time: arrivalTime === null ? null : formatDuration(arrivalTime.asSeconds()),
+      departure_time: departureTime === null ? null : formatDuration(departureTime.asSeconds()),
       pickup_type: departureStop.pickup_type,
       drop_off_type: arrivalStop.drop_off_type
     });
@@ -151,32 +162,18 @@ export class Association implements OverlayRecord {
  * Clone the given stop overriding the sequence number and modifying the arrival/departure times if necessary
  */
 function cloneStop(
-    stop: StopTime,
-    stopSequence: number,
-    tripId: string,
-    assocStop: StopTime | null = null,
-    disablePickup: boolean = false,
-    disableDropOff: boolean = false
+    stop : StopTime,
+    stopSequence : number,
+    tripId : string,
+    nextDay : boolean
 ): StopTime {
-  const assocTime = moment.duration(assocStop && assocStop.arrival_time ? assocStop.arrival_time : "00:00");
   const departureTime = stop.departure_time ? moment.duration(stop.departure_time) : null;
-
-  if (departureTime && departureTime.asSeconds() < assocTime.asSeconds()) {
-    departureTime.add(1, "day");
-  }
+  if (nextDay) departureTime?.add(1, "day");
 
   const arrivalTime = stop.arrival_time ? moment.duration(stop.arrival_time) : null;
+  if (nextDay) arrivalTime?.add(1, "day");
 
-  if (arrivalTime && arrivalTime.asSeconds() < assocTime.asSeconds()) {
-    arrivalTime.add(1, "day");
-  }
-
-  let override = disablePickup ? {pickup_type : 1} : {};
-  if (disableDropOff) {
-    override = Object.assign(override, {drop_off_type : 1});
-  }
-
-  return Object.assign({}, stop, override, {
+  return Object.assign({}, stop, {
     arrival_time: arrivalTime ? formatDuration(arrivalTime.asSeconds()) : null,
     departure_time: departureTime ? formatDuration(departureTime.asSeconds()) : null,
     stop_sequence: stopSequence,

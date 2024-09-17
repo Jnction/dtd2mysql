@@ -37,7 +37,7 @@ The --get-* and --download-* commands require SFTP environment properties:
   SFTP_USERNAME              SFTP username
   SFTP_PASSWORD              SFTP password
   SFTP_HOSTNAME              SFTP hostname (defaults to dtd.atocrsp.org)
-  
+
 `);
 
     return Promise.resolve();

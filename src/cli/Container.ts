@@ -3,6 +3,8 @@ import * as csvParse from 'csv-parse/sync';
 import * as memoize from "memoized-class-decorator";
 import {Pool} from 'mysql2';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import {CLICommand} from "./CLICommand";
 import {ImportFeedCommand} from "./ImportFeedCommand";
 import {DatabaseConfiguration, DatabaseConnection} from "../database/DatabaseConnection";
@@ -50,22 +52,22 @@ export class Container {
 
   @memoize
   public async getFaresImportCommand(): Promise<ImportFeedCommand> {
-    return new ImportFeedCommand(await this.getDatabaseConnection(), config.fares, "/tmp/dtd/fares/");
+    return new ImportFeedCommand(await this.getDatabaseConnection(), config.fares, fs.mkdtempSync(path.join(os.tmpdir(), "dtd")));
   }
 
   @memoize
   public async getRouteingImportCommand(): Promise<ImportFeedCommand> {
-    return new ImportFeedCommand(await this.getDatabaseConnection(), config.routeing, "/tmp/dtd/routeing/");
+    return new ImportFeedCommand(await this.getDatabaseConnection(), config.routeing, fs.mkdtempSync(path.join(os.tmpdir(), "dtd")));
   }
 
   @memoize
   public async getTimetableImportCommand(): Promise<ImportFeedCommand> {
-    return new ImportFeedCommand(await this.getDatabaseConnection(), config.timetable, "/tmp/dtd/timetable/");
+    return new ImportFeedCommand(await this.getDatabaseConnection(), config.timetable, fs.mkdtempSync(path.join(os.tmpdir(), "dtd")));
   }
 
   @memoize
   public async getNFM64ImportCommand(): Promise<ImportFeedCommand> {
-    return new ImportFeedCommand(await this.getDatabaseConnection(), config.nfm64, "/tmp/dtd/nfm64/");
+    return new ImportFeedCommand(await this.getDatabaseConnection(), config.nfm64, fs.mkdtempSync(path.join(os.tmpdir(), "dtd")));
   }
 
 
@@ -91,7 +93,8 @@ export class Container {
         this.getDatabaseConnection(),
         this.getDatabaseStream(),
         stationCoordinates,
-        this.getTiplocCoordinates() ?? undefined
+        this.getTiplocCoordinates() ?? undefined,
+        this.getStops() ?? undefined
       ),
       output
     );
@@ -224,5 +227,25 @@ export class Container {
       };
     }
     return result;
+  }
+
+  private getStops() : Stop[] | null {
+    const stopFilePath = `${appRootPath}/stops.csv`;
+    return fs.existsSync(stopFilePath)
+        ? csvParse.parse(
+            fs.readFileSync(stopFilePath, {encoding : 'utf8'}).replace(/^\uFEFF/, ''),
+            {
+              columns : true,
+              cast : (value, context) => [
+                'stop_lon',
+                'stop_lat',
+                'wheelchair_boarding',
+                'location_type'
+              ].includes(String(context.column))
+                  ? value === '' ? null : Number(value)
+                  : value
+            }
+        )
+        : null;
   }
 }
