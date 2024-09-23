@@ -166,7 +166,7 @@ export class Schedule implements OverlayRecord {
       if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
         return {name : 'Windrush line', colour : 0xEF4D5E};
       }
-      if (['LST', 'HAC', 'SVS', 'ENF', 'CHN', 'CHI'].some(callback)) {
+      if (['LST', 'HAC', 'SKW', 'EDR', 'ENF', 'CHN', 'WST', 'CHI'].some(callback)) {
         return {name : 'Weaver line', colour : 0x972861};
       }
       if (['RMF', 'UPM'].some(callback)) {
