@@ -222,6 +222,7 @@ export class Container {
       if (item.stop_lat !== null && item.stop_lon !== null)
       result[item.stop_id] = {
         stop_name: item.stop_name,
+        stop_desc: item.stop_desc,
         stop_lat: item.stop_lat,
         stop_lon: item.stop_lon,
       };
