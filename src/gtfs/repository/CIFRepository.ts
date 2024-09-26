@@ -391,6 +391,7 @@ export type TiplocCoordiates = {
     stop_lat: number,
     stop_lon: number,
     stop_name: string,
+    stop_desc: string,
   }
 }
 
