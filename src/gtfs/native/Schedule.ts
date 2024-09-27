@@ -1,6 +1,7 @@
-import objectHash = require('object-hash');
+import  objectHash = require('object-hash');
+import {agencies} from '../../../config/gtfs/agency';
 import {AgencyID} from "../file/Agency";
-import {Route, RouteType} from "../file/Route";
+import {Route, RouteID, RouteType} from "../file/Route";
 import {Shape} from '../file/Shape';
 import {AtcoCode, CRS, TIPLOC} from "../file/Stop";
 import {StopTime} from "../file/StopTime";
@@ -22,7 +23,7 @@ export class Schedule implements OverlayRecord {
     public readonly rsid: RSID | null,
     public readonly calendar: ScheduleCalendar,
     public readonly mode: RouteType,
-    public readonly operator: AgencyID | null,
+    public readonly operator: string | null,
     public readonly stp: STP,
     public readonly firstClassAvailable: boolean,
     public readonly reservationPossible: boolean
@@ -98,9 +99,76 @@ export class Schedule implements OverlayRecord {
     return objectHash(this.stopTimes.map(stopTime => stopTime.stop_id).join('-'));
   }
 
-  public getNameAndColour(routeLongName : string) : {name : string, long_name? : string, colour : number | null} {
+  public getNameAndColour(routeLongName : string) : {route_id : RouteID, name : string, long_name? : string, colour : number | null} {
+    const result = this.getNameAndColourWithoutBusSuffix(routeLongName);
+    
+    if (this.mode === RouteType.ReplacementBus) {
+      result.route_id += '_BUS';
+    } 
+    return result;
+  }
+
+  private getNameAndColourWithoutBusSuffix(routeLongName : string) : {route_id : RouteID, name : string, long_name? : string, colour : number | null} {
     const rsid = this.rsid?.substring(0, 6) ?? this.tuid;
-    const prefix = this.operator ?? null;
+    const prefix = this.operator;
+
+    // apply London Northwestern Railway and West Midlands Railway branding to West Midlands Trains services
+    if (prefix === 'LM') {
+      return [
+        'Euston',
+        'Watford Junction',
+        'Tring',
+        'Bletchley',
+        'Milton Keynes',
+        'Northampton',
+        'St Albans',
+        'Bedford',
+        'Liverpool',
+        'Crewe'
+      ].find((element) => routeLongName.includes(element)) !== undefined
+          ? {route_id : 'LN', name : 'LNR', long_name : 'London Northwestern Railway', colour : 0x00bf6f}
+          : {route_id : 'WM', name : 'WMR', long_name : 'West Midlands Railway', colour : 0xe07709};
+    }
+
+    // apply Stansted Express branding
+    if (prefix === 'LE' && ['London', 'Stansted Airport'].every((element) => routeLongName.includes(element))) {
+      return {route_id : 'SX', name : 'Stansted Express', colour : 0x6b717a};
+    }
+
+    // identify the London Overground lines
+    const callback = this.stopAtStation.bind(this);
+    if (prefix === 'LO') {
+      if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
+        return {route_id : 'LO_Windrush', name : 'Windrush line', colour : 0xEF4D5E};
+      }
+      if (['LST', 'HAC', 'SKW', 'EDR', 'ENF', 'CHN', 'WST', 'CHI'].some(callback)) {
+        return {route_id : 'LO_Weaver', name : 'Weaver line', colour : 0x972861};
+      }
+      if (['RMF', 'UPM'].some(callback)) {
+        return {route_id : 'LO_Liberty', name : 'Liberty line', colour : 0x676767};
+      }
+      if (['KPA', 'SPB', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
+        return {route_id : 'LO_Mildmay', name : 'Mildmay line', colour : 0x437EC1};
+      }
+      // I am considering Stratford - Willesden / Watford through-running services to be Mildmay line here
+      if (['EUS', 'KBN', 'SBP', 'HRW', 'WFH', 'WFJ'].some(callback)) {
+        return {route_id : 'LO_Lioness', name : 'Lioness line', colour : 0xF1B41C};
+      }
+      if (['HRY', 'WMW', 'LER', 'BKG'].some(callback)) {
+        return {route_id : 'LO_Suffragette', name : 'Suffragette line', colour : 0x39B97A};
+      }
+    }
+
+    // identify the Merseyrail lines
+    if (prefix === 'ME') {
+      if (['HNX', 'LPY', 'SDL', 'BAH', 'HLR', 'SOP', 'KKD', 'WAO', 'MAG', 'OMS', 'RIL', 'KIR', 'HBL'].some(callback)) {
+        return {route_id : 'ME_Northern', name : 'Northern line', colour : 0x0266b2};
+      }
+      if (['BKQ', 'NBN', 'BID', 'WKI', 'RFY', 'PSL', 'HOO', 'ELP', 'CTR'].some(callback)) {
+        return {route_id : 'ME_Wirral', name : 'Wirral line', colour : 0x00a94f};
+      }
+    }
+
     // colours sourced from https://en.wikipedia.org/wiki/Wikipedia:WikiProject_UK_Railways/Colours_list
     const tocData = {
       "AW": {name: 'TfW Rail', long_name: "Transport for Wales", colour: 0xff0000},
@@ -139,63 +207,8 @@ export class Schedule implements OverlayRecord {
       "ZZ": {name: "Other operator", colour: null}
     };
 
-    if (prefix === 'LM') {
-      return [
-        'Euston',
-        'Watford Junction',
-        'Tring',
-        'Bletchley',
-        'Milton Keynes',
-        'Northampton',
-        'St Albans',
-        'Bedford',
-        'Liverpool',
-        'Crewe'
-      ].find((element) => routeLongName.includes(element)) !== undefined
-          ? {name: 'LNR', long_name : 'London Northwestern Railway', colour : 0x00bf6f}
-          : {name: 'WMR', long_name : 'West Midlands Railway', colour : 0xe07709};
-    }
-    if (prefix === 'LE') {
-      return ['London', 'Stansted Airport'].every((element) => routeLongName.includes(element))
-          ? {name : 'Stansted Express', colour : 0x6b717a}
-          : tocData.LE;
-    }
-
-    const callback = this.stopAtStation.bind(this);
-    if (prefix === 'LO') {
-      if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
-        return {name : 'Windrush line', colour : 0xEF4D5E};
-      }
-      if (['LST', 'HAC', 'SKW', 'EDR', 'ENF', 'CHN', 'WST', 'CHI'].some(callback)) {
-        return {name : 'Weaver line', colour : 0x972861};
-      }
-      if (['RMF', 'UPM'].some(callback)) {
-        return {name : 'Liberty line', colour : 0x676767};
-      }
-      if (['KPA', 'SPB', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
-        return {name : 'Mildmay line', colour : 0x437EC1};
-      }
-      // I am considering Stratford - Willesden / Watford through-running services to be Mildmay line here
-      if (['EUS', 'KBN', 'SBP', 'HRW', 'WFH', 'WFJ'].some(callback)) {
-        return {name : 'Lioness line', colour : 0xF1B41C};
-      }
-      if (['HRY', 'WMW', 'LER', 'BKG'].some(callback)) {
-        return {name : 'Suffragette line', colour : 0x39B97A};
-      }
-    }
-
-    if (prefix === 'ME') {
-      if (['HNX', 'LPY', 'SDL', 'BAH', 'HLR', 'SOP', 'KKD', 'WAO', 'MAG', 'OMS', 'RIL', 'KIR', 'HBL'].some(callback)) {
-        return {name : 'Northern line', colour : 0x0266b2};
-      }
-      if (['BKQ', 'NBN', 'BID', 'WKI', 'RFY', 'PSL', 'HOO', 'ELP', 'CTR'].some(callback)) {
-        return {name : 'Wirral line', colour : 0x00a94f};
-      }
-    }
-
-    return tocData[prefix ?? ''] ?? {name: rsid, colour : null};
+    return {route_id : prefix, ...tocData[prefix ?? ''] ?? {name : rsid, colour : null}};
   }
-
 
   /**
    * Convert to GTFS Route
@@ -204,9 +217,10 @@ export class Schedule implements OverlayRecord {
     const origin = await cifRepository.getStopName(this.origin) ?? this.origin;
     const destination = await cifRepository.getStopName(this.destination) ?? this.destination;
     const nameAndColour = this.getNameAndColour(`${origin} → ${destination}`);
+    const agency_id = `=${this.operator ?? "ZZ"}`;
     return {
-      route_id: this.id,
-      agency_id: `=${this.operator || "ZZ"}`,
+      route_id: nameAndColour.route_id,
+      agency_id: agencies.some((a) => a.agency_id === agency_id) ? agency_id : '=ZZ',
       route_short_name: nameAndColour.name,
       route_long_name: nameAndColour.long_name ?? null,
       route_type: this.mode,

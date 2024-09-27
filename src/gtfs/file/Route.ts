@@ -25,4 +25,4 @@ export enum RouteType {
   ReplacementBus = 714
 }
 
-export type RouteID = number;
+export type RouteID = string;
