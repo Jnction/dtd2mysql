@@ -161,8 +161,7 @@ export class Schedule implements OverlayRecord {
 
     // identify the Merseyrail lines
     if (prefix === 'ME') {
-      if (['HNX', 'LPY', 'SDL', 'BAH', 'HLR', 'SOP', 'KKD', 'WAO', 'MAG', 'OMS', 'RIL', 'KIR', 'HBL'].some(
-          callback)) {
+      if (['HNX', 'LPY', 'SDL', 'BAH', 'HLR', 'SOP', 'KKD', 'WAO', 'MAG', 'OMS', 'RIL', 'KIR', 'HBL'].some(callback)) {
         return {route_id : 'ME_Northern', name : 'Northern line', colour : 0x0266b2};
       }
       if (['BKQ', 'NBN', 'BID', 'WKI', 'RFY', 'PSL', 'HOO', 'ELP', 'CTR'].some(callback)) {
@@ -172,40 +171,40 @@ export class Schedule implements OverlayRecord {
 
     // colours sourced from https://en.wikipedia.org/wiki/Wikipedia:WikiProject_UK_Railways/Colours_list
     const tocData = {
-      "AW" : {name : 'TfW Rail', long_name : "Transport for Wales", colour : 0xff0000},
-      "CC" : {name : "c2c", colour : 0xb7007c},
-      "CH" : {name : "Chiltern Railways", colour : 0x00bfff},
-      "XC" : {name : "CrossCountry", colour : 0x660f21},
-      "GR" : {name : "LNER", long_name : "London North Eastern Railway", colour : 0xce0e2d},
-      "EM" : {name : "EMR", long_name : "East Midlands Railway", colour : 0x713563},
-      "ES" : {name : "Eurostar", colour : 0xffd700},
-      "GW" : {name : "GWR", long_name : "Great Western Railway", colour : 0x0a493e},
-      "HT" : {name : "Hull Trains", colour : 0xde005c},
-      "TP" : {name : "TPE", long_name : "TransPennine Express", colour : 0x09a4ec},
-      "GX" : {name : "Gatwick Express", colour : 0xeb1e2d},
-      "GC" : {name : "Grand Central", colour : 0x1d1d1b},
-      "GN" : {name : "Great Northern", colour : 0x0099ff},
-      "LE" : {name : "Greater Anglia", colour : 0xd70428},
-      "HX" : {name : "Heathrow Express", colour : 0x532e63},
-      "IL" : {name : "Island Line", colour : 0x1e90ff},
-      "LD" : {name : "Lumo", colour : 0x2b6ef5},
-      "LM" : {name : 'WMT', long_name : "West Midlands Trains", colour : null},
-      "LO" : {name : "Overground", long_name : "London Overground", colour : 0xff7518},
-      "LT" : {name : "Underground", long_name : "London Underground", colour : 0x000f9f},
-      "ME" : {name : "Merseyrail", colour : 0xfff200},
-      "NT" : {name : "Northern", colour : 0x0f0d78},
-      "SR" : {name : "ScotRail", colour : 0x1e467d},
-      "SW" : {name : "SWR", long_name : "South Western Railway", colour : 0x24398c},
-      "SE" : {name : "Southeastern", colour : 0x389cff},
-      "SN" : {name : "Southern", colour : 0x8cc63e},
-      "TL" : {name : "Thameslink", colour : 0xff5aa4},
-      "VT" : {name : 'Avanti', long_name : "Avanti West Coast", colour : 0x004354},
-      "TW" : {name : "Metro", long_name : "Tyne & Wear Metro", colour : null},
-      "CS" : {name : "Caledonian Sleeper", colour : 0x1d2e35},
-      "XR" : {name : "Elizabeth line", colour : 0x9364cc},
-      "QC" : {name : "Caledonian MacBrayne", colour : null},
-      "QS" : {name : "Stena Line", colour : null},
-      "ZZ" : {name : "Other operator", colour : null}
+      "AW": {name: 'TfW Rail', long_name: "Transport for Wales", colour: 0xff0000},
+      "CC": {name: "c2c", colour: 0xb7007c},
+      "CH": {name: "Chiltern Railways", colour: 0x00bfff},
+      "XC": {name: "CrossCountry", colour: 0x660f21},
+      "GR": {name: "LNER", long_name: "London North Eastern Railway", colour: 0xce0e2d},
+      "EM": {name: "EMR", long_name: "East Midlands Railway", colour: 0x713563},
+      "ES": {name: "Eurostar", colour: 0xffd700},
+      "GW": {name: "GWR", long_name: "Great Western Railway", colour: 0x0a493e},
+      "HT": {name: "Hull Trains", colour: 0xde005c},
+      "TP": {name: "TPE", long_name: "TransPennine Express", colour: 0x09a4ec },
+      "GX": {name: "Gatwick Express", colour: 0xeb1e2d},
+      "GC": {name: "Grand Central", colour: 0x1d1d1b},
+      "GN": {name: "Great Northern", colour: 0x0099ff},
+      "LE": {name: "Greater Anglia", colour: 0xd70428},
+      "HX": {name: "Heathrow Express", colour: 0x532e63},
+      "IL": {name: "Island Line", colour: 0x1e90ff},
+      "LD": {name: "Lumo", colour: 0x2b6ef5},
+      "LM": {name: 'WMT', long_name: "West Midlands Trains", colour: null},
+      "LO": {name: "Overground", long_name: "London Overground", colour: 0xff7518},
+      "LT": {name: "Underground", long_name: "London Underground", colour: 0x000f9f},
+      "ME": {name: "Merseyrail", colour: 0xfff200},
+      "NT": {name: "Northern", colour: 0x0f0d78},
+      "SR": {name: "ScotRail", colour: 0x1e467d},
+      "SW": {name: "SWR", long_name: "South Western Railway", colour: 0x24398c},
+      "SE": {name: "Southeastern", colour: 0x389cff},
+      "SN": {name: "Southern", colour: 0x8cc63e},
+      "TL": {name: "Thameslink", colour: 0xff5aa4},
+      "VT": {name: 'Avanti', long_name: "Avanti West Coast", colour: 0x004354},
+      "TW": {name: "Metro", long_name: "Tyne & Wear Metro", colour: null},
+      "CS": {name: "Caledonian Sleeper", colour: 0x1d2e35},
+      "XR": {name: "Elizabeth line", colour: 0x9364cc},
+      "QC": {name: "Caledonian MacBrayne", colour: null},
+      "QS": {name: "Stena Line", colour: null},
+      "ZZ": {name: "Other operator", colour: null}
     };
 
     return {route_id : prefix, ...tocData[prefix ?? ''] ?? {name : rsid, colour : null}};
