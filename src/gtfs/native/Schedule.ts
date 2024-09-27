@@ -104,6 +104,7 @@ export class Schedule implements OverlayRecord {
       const rsid = this.rsid?.substring(0, 6) ?? this.tuid;
       const prefix = this.operator;
 
+      // apply London Northwestern Railway and West Midlands Railway branding to West Midlands Trains services
       if (prefix === 'LM') {
         return [
           'Euston',
@@ -120,10 +121,13 @@ export class Schedule implements OverlayRecord {
             ? {route_id : 'LN', name : 'LNR', long_name : 'London Northwestern Railway', colour : 0x00bf6f}
             : {route_id : 'WM', name : 'WMR', long_name : 'West Midlands Railway', colour : 0xe07709};
       }
+      
+      // apply Stansted Express branding
       if (prefix === 'LE' && ['London', 'Stansted Airport'].every((element) => routeLongName.includes(element))) {
         return {route_id : 'SX', name : 'Stansted Express', colour : 0x6b717a};
       }
 
+      // identify the London Overground lines
       const callback = this.stopAtStation.bind(this);
       if (prefix === 'LO') {
         if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
@@ -147,6 +151,7 @@ export class Schedule implements OverlayRecord {
         }
       }
 
+      // identify the Merseyrail lines
       if (prefix === 'ME') {
         if (['HNX', 'LPY', 'SDL', 'BAH', 'HLR', 'SOP', 'KKD', 'WAO', 'MAG', 'OMS', 'RIL', 'KIR', 'HBL'].some(callback)) {
           return {route_id : 'ME_Northern', name : 'Northern line', colour : 0x0266b2};
