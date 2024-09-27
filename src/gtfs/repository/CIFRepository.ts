@@ -164,10 +164,19 @@ export class CIFRepository {
           delete result['platforms'];
           result.stop_name += platform_code ? ` (Platform ${platform_code})` : '';
           result.location_type = 0;
+          // for platformless stops, try to calculate an average of platforms first, failing that, 
           // use tiploc coordinates instead of station coordinates
-          if (tiploc_entry !== undefined) {
-            result.stop_lat = tiploc_entry.stop_lat;
-            result.stop_lon = tiploc_entry.stop_lon;
+          const platforms = Object.entries(station_data.platforms ?? []).filter(
+              entry => results.find(result => result.stop_id === `9100${stop.tiploc_code}${entry[0]}`)
+          ).map(entry => entry[1]);
+          if (platforms.length === 0) {
+            if (tiploc_entry !== undefined) {
+              result.stop_lat = tiploc_entry.stop_lat;
+              result.stop_lon = tiploc_entry.stop_lon;
+            }
+          } else {
+            result.stop_lat = platforms.reduce((sum, platform) => sum + platform.stop_lat, 0) / platforms.length;
+            result.stop_lon = platforms.reduce((sum, platform) => sum + platform.stop_lon, 0) / platforms.length;
           }
           return result;
         } else {
@@ -382,7 +391,7 @@ export type StationCoordinates = {
     stop_name: string,
     location_type?: number,
     wheelchair_boarding: 0 | 1 | 2,
-    platforms?: {[key : string] : StationCoordinates}
+    platforms?: {[key : string] : StationCoordinates[string]}
   }
 };
 
