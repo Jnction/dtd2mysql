@@ -1,6 +1,6 @@
 {
-  "name": "dtd2mysql",
-  "version": "6.6.0",
+  "name": "@jnction/dtd2mysql",
+  "version": "10.0.0",
   "description": "Command line tool to put the GB rail DTD feed into a MySQL compatible database",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/open-track/dtd2mysql.git"
+    "url": "git+https://github.com/Jnction/dtd2mysql.git"
   },
   "keywords": [
     "gb",
@@ -34,11 +34,17 @@
     "dtd"
   ],
   "author": "Linus Norton",
+  "contributors" : [
+    {
+      "name" : "Michael Tsang",
+      "email" : "michael.tsang@jnction.co.uk"
+    }
+  ],
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/open-track/dtd2mysql/issues"
+    "url": "https://github.com/Jnction/dtd2mysql/issues"
   },
-  "homepage": "https://github.com/open-track/dtd2mysql#readme",
+  "homepage": "https://github.com/Jnction/dtd2mysql#readme",
   "dependencies": {
     "@types/object-hash": "^3.0.6",
     "@types/proj4": "^2.5.5",
