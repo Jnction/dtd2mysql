@@ -3220,6 +3220,7 @@ stop_id,stop_name,stop_lat,stop_lon,stop_code,tiploc_code,stop_desc,stop_timezon
 9100SETTLEBUS,Settle (Platform BUS),54.0669141517,-2.28071401529,SET,SETTLE,,Europe/London,0,BUS,910GSETTLE,0
 9100SEVNSISBUS,Seven Sisters (Platform BUS),51.5824738,-0.0749325,SVS,SEVNSIS,,Europe/London,2,BUS,910GSEVNSIS,0
 9100SEVTNLJBUS,Severn Tunnel Junction (Platform BUS),51.584253,-2.7772968,STJ,SEVTNLJ,,Europe/London,0,BUS,910GSEVTNLJ,0
+9100SEVTROG,Severn Tunnel Junction - Rogiet Pool,51.588081,-2.783873,SRB,SEVTROG,,Europe/London,0,,,0
 9100SFRTHALBUS,Seaforth & Litherland (Platform BUS),53.4655761,-3.0047956,SFL,SFRTHAL,,Europe/London,1,BUS,910GSFRTHAL,0
 9100SGFORD1,South Greenford (Platform 1),51.5332032,-0.3364379,SGN,SGFORD,,Europe/London,0,1,910GSGFORD,0
 9100SGFORD2,South Greenford (Platform 2),51.5332032,-0.3364379,SGN,SGFORD,,Europe/London,0,2,910GSGFORD,0
