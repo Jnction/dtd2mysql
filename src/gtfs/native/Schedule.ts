@@ -138,7 +138,7 @@ export class Schedule implements OverlayRecord {
     // identify the London Overground lines
     const callback = this.stopAtStation.bind(this);
     if (prefix === 'LO') {
-      if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
+      if (['DLJ', 'SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
         return {route_id : 'LO_Windrush', name : 'Windrush line', colour : 0xEF4D5E};
       }
       if (['LST', 'HAC', 'SKW', 'EDR', 'ENF', 'CHN', 'WST', 'CHI'].some(callback)) {
