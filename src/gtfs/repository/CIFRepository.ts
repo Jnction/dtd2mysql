@@ -2,6 +2,7 @@
 import {Pool} from 'mysql2';
 import * as proj4 from 'proj4';
 import {DatabaseConnection} from "../../database/DatabaseConnection";
+import {RouteType} from '../file/Route';
 import {Transfer} from "../file/Transfer";
 import {AtcoCode, CRS, Stop, TIPLOC} from "../file/Stop";
 import moment = require("moment");
@@ -159,6 +160,7 @@ export class CIFRepository {
             return Object.assign(stop, platform_data);
           }
         }
+        stop.vehicle_type = platform_code === 'BUS' ? RouteType.ReplacementBus : RouteType.Rail;
         if (station_data !== undefined) {
           // otherwise inherit station data
           const result = Object.assign(stop, station_data);
