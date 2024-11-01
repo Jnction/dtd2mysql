@@ -153,6 +153,7 @@ export class CIFRepository {
           ?? tiploc_entry
       if (stop.location_type === 0) {
         const platform_code = stop.platform_code;
+        stop.vehicle_type = platform_code === 'BUS' ? RouteType.ReplacementBus : RouteType.Rail;
         if (platform_code) {
           const platform_data = (station_data?.platforms ?? [])[platform_code];
           if (platform_data !== undefined) {
@@ -160,7 +161,6 @@ export class CIFRepository {
             return Object.assign(stop, platform_data);
           }
         }
-        stop.vehicle_type = platform_code === 'BUS' ? RouteType.ReplacementBus : RouteType.Rail;
         if (station_data !== undefined) {
           // otherwise inherit station data
           const result = Object.assign(stop, station_data);
