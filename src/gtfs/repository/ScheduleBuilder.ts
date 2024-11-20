@@ -209,6 +209,9 @@ export class ScheduleBuilder {
           const barnes = findCallingIndex('BNS');
           const addlestone = findCallingIndex('ASN');
           const isleworth = findCallingIndex('ISL');
+          
+          const redbridge = findCallingIndex('RDB');
+          const chandlers_ford = findCallingIndex('CFR');
 
           // Kingston loop clockwise
           if (
@@ -268,6 +271,11 @@ export class ScheduleBuilder {
           }
           if (addlestone !== null && barnes !== null && addlestone < barnes) {
             return barnes;
+          }
+          
+          // Chandler's Ford loop
+          if (chandlers_ford !== null && redbridge !== null) {
+            return chandlers_ford > redbridge ? chandlers_ford : redbridge;
           }
         }
 
