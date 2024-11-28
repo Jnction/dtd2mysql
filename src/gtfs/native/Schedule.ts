@@ -136,26 +136,27 @@ export class Schedule implements OverlayRecord {
     }
 
     // identify the London Overground lines
+    // https://blog.tfl.gov.uk/2024/03/08/london-overground-lines/
     const callback = this.stopAtStation.bind(this);
     if (prefix === 'LO') {
       if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
-        return {route_id : 'LO_Windrush', name : 'Windrush line', colour : 0xEF4D5E};
+        return {route_id : 'WIN', name : 'Windrush', long_name : 'Windrush line', colour : 0xDC241F};
       }
       if (['LST', 'HAC', 'SKW', 'EDR', 'ENF', 'CHN', 'WST', 'CHI'].some(callback)) {
-        return {route_id : 'LO_Weaver', name : 'Weaver line', colour : 0x972861};
+        return {route_id : 'WEA', name : 'Weaver', long_name : 'Weaver line', colour : 0x9B0058};
       }
       if (['RMF', 'UPM'].some(callback)) {
-        return {route_id : 'LO_Liberty', name : 'Liberty line', colour : 0x676767};
+        return {route_id : 'LIB', name : 'Liberty', long_name : 'Liberty line', colour : 0x61686B};
       }
       if (['KPA', 'SPB', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
-        return {route_id : 'LO_Mildmay', name : 'Mildmay line', colour : 0x437EC1};
+          return {route_id : 'MIL', name : 'Mildmay', long_name : 'Mildmay line', colour : 0x006FE6};
       }
       // I am considering Stratford - Willesden / Watford through-running services to be Mildmay line here
       if (['EUS', 'KBN', 'SBP', 'HRW', 'WFH', 'WFJ'].some(callback)) {
-        return {route_id : 'LO_Lioness', name : 'Lioness line', colour : 0xF1B41C};
+        return {route_id : 'LIO', name : 'Lioness', long_name : 'Lioness line', colour : 0xFFA600};
       }
       if (['HRY', 'WMW', 'LER', 'BKG'].some(callback)) {
-        return {route_id : 'LO_Suffragette', name : 'Suffragette line', colour : 0x39B97A};
+        return {route_id : 'SUF', name : 'Suffragette', long_name : 'Suffragette line', colour : 0x18A95D};
       }
     }
 
