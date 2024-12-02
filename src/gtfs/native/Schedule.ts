@@ -139,7 +139,7 @@ export class Schedule implements OverlayRecord {
     // https://blog.tfl.gov.uk/2024/03/08/london-overground-lines/
     const callback = this.stopAtStation.bind(this);
     if (prefix === 'LO') {
-      if (['SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
+      if (['DLJ', 'SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
         return {route_id : 'WIN', name : 'Windrush', long_name : 'Windrush line', colour : 0xDC241F};
       }
       if (['LST', 'HAC', 'SKW', 'EDR', 'ENF', 'CHN', 'WST', 'CHI'].some(callback)) {
