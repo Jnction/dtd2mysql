@@ -2,6 +2,7 @@
 import {Pool} from 'mysql2';
 import * as proj4 from 'proj4';
 import {DatabaseConnection} from "../../database/DatabaseConnection";
+import {RouteType} from '../file/Route';
 import {Transfer} from "../file/Transfer";
 import {AtcoCode, CRS, Stop, TIPLOC} from "../file/Stop";
 import moment = require("moment");
@@ -50,7 +51,8 @@ export class CIFRepository {
    * Return all the stops with some configurable long/lat applied
    */
   public async getStops(): Promise<Stop[]> {
-    return [...(await this.stops).values()];
+    return [...(await this.stops).values()]
+        .sort((a, b) => a.stop_id === b.stop_id ? 0 : a.stop_id < b.stop_id ? -1 : 1);
   }
 
   public async findStopById(stopId: string) {
@@ -151,6 +153,7 @@ export class CIFRepository {
           ?? tiploc_entry
       if (stop.location_type === 0) {
         const platform_code = stop.platform_code;
+        stop.vehicle_type = platform_code === 'BUS' ? RouteType.ReplacementBus : RouteType.Rail;
         if (platform_code) {
           const platform_data = (station_data?.platforms ?? [])[platform_code];
           if (platform_data !== undefined) {
@@ -189,6 +192,17 @@ export class CIFRepository {
       }
     })) {
       stopById.set(stop.stop_id, stop);
+    }
+    
+    // add "suppressed" platforms
+    // they are duplicates of normal platforms but with the platform code removed
+    {
+      const platforms = [...stopById.values()].filter(stop => stop.platform_code !== null && stop.platform_code !== '');
+      for (const platform of platforms) {
+        const newStopId = `${platform.stop_id}:sup`;
+        const newPlatform = {...platform, stop_name: platform.stop_name.replace(/ \(Platform .*\)/g, ''), stop_id: newStopId, platform_code: null};
+        stopById.set(newPlatform.stop_id, newPlatform);
+      }
     }
     
     return stopById;
