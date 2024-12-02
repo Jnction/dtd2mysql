@@ -208,6 +208,10 @@ export class ScheduleBuilder {
           const mortlake = findCallingIndex('MTL');
           const barnes = findCallingIndex('BNS');
           const addlestone = findCallingIndex('ASN');
+          const isleworth = findCallingIndex('ISL');
+          
+          const redbridge = findCallingIndex('RDB');
+          const chandlers_ford = findCallingIndex('CFR');
 
           // Kingston loop clockwise
           if (
@@ -230,6 +234,9 @@ export class ScheduleBuilder {
           ) {
             return teddington;
           }
+          if (barnes !== null && kingston !== null && barnes < kingston) {
+            return kingston;
+          }
           if (wimbledon !== null && (
               twickenham !== null && twickenham < wimbledon || stop_code === 'TWI'
           )) {
@@ -251,10 +258,10 @@ export class ScheduleBuilder {
           }
 
           // Hounslow loop anti-clockwise
-          if (hounslow !== null && brentford !== null && brentford < hounslow && staines === null) {
+          if (hounslow !== null && brentford !== null && brentford < hounslow && richmond !== null) {
             return hounslow;
           }
-          if (hounslow !== null && mortlake !== null && hounslow < mortlake) {
+          if (isleworth !== null && mortlake !== null && isleworth < mortlake) {
             return mortlake;
           }
 
@@ -264,6 +271,11 @@ export class ScheduleBuilder {
           }
           if (addlestone !== null && barnes !== null && addlestone < barnes) {
             return barnes;
+          }
+          
+          // Chandler's Ford loop
+          if (chandlers_ford !== null && redbridge !== null) {
+            return chandlers_ford > redbridge ? chandlers_ford : redbridge;
           }
         }
 
