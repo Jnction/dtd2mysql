@@ -15,6 +15,7 @@ export interface Stop {
   stop_timezone: string;
   wheelchair_boarding: 0 | 1 | 2;
   platform_code: Platform | null;
+  vehicle_type?: number; // this is a Google extension
 }
 
 export type CRS = string;

@@ -2,6 +2,7 @@
 import {Pool} from 'mysql2';
 import * as proj4 from 'proj4';
 import {DatabaseConnection} from "../../database/DatabaseConnection";
+import {RouteType} from '../file/Route';
 import {Transfer} from "../file/Transfer";
 import {AtcoCode, CRS, Stop, TIPLOC} from "../file/Stop";
 import moment = require("moment");
@@ -152,6 +153,7 @@ export class CIFRepository {
           ?? tiploc_entry
       if (stop.location_type === 0) {
         const platform_code = stop.platform_code;
+        stop.vehicle_type = platform_code === 'BUS' ? RouteType.ReplacementBus : RouteType.Rail;
         if (platform_code) {
           const platform_data = (station_data?.platforms ?? [])[platform_code];
           if (platform_data !== undefined) {
