@@ -1,11 +1,10 @@
-import  objectHash = require('object-hash');
+import objectHash = require('object-hash');
 import {agencies} from '../../../config/gtfs/agency';
-import {AgencyID} from "../file/Agency";
 import {Route, RouteID, RouteType} from "../file/Route";
 import {Shape} from '../file/Shape';
 import {AtcoCode, CRS, TIPLOC} from "../file/Stop";
 import {StopTime} from "../file/StopTime";
-import {Trip} from "../file/Trip";
+import {Accessibility, Trip} from "../file/Trip";
 import {CIFRepository} from '../repository/CIFRepository';
 import {OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
 import {ScheduleCalendar} from "./ScheduleCalendar";
@@ -60,7 +59,7 @@ export class Schedule implements OverlayRecord {
   /**
    * Convert to a GTFS Trip
    */
-  public async toTrip(serviceId: string, routeId: number, cifRepository : CIFRepository): Promise<Trip> {
+  public async toTrip(serviceId: string, routeId: number, cifRepository : CIFRepository, bikesAllowed : Accessibility): Promise<Trip> {
     const viaText = getViaText(
         this.stopTimes[0].stop_code ?? '',
         this.stopTimes.slice(1).map(stopTime => stopTime.tiploc_code),
@@ -74,8 +73,8 @@ export class Schedule implements OverlayRecord {
       trip_short_name: this.rsid?.substr(0, 6) ?? this.tuid,
       direction_id: 0,
       shape_id: this.getShapeId(),
-      wheelchair_accessible: 1,
-      bikes_allowed: 0,
+      wheelchair_accessible: Accessibility.YES,
+      bikes_allowed: bikesAllowed,
       original_trip_id: this.tuid,
     };
   }
