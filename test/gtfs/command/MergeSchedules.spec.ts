@@ -45,7 +45,8 @@ export function schedule(id: number,
                          to: string,
                          stp: STP = STP.Overlay,
                          days: Days = ALL_DAYS,
-                         stops: StopTime[] = DEFAULT_STOP_TIMES): Schedule {
+                         stops: StopTime[] = DEFAULT_STOP_TIMES,
+                         toc: string = "LN"): Schedule {
 
   return new Schedule(
     id,
@@ -60,7 +61,7 @@ export function schedule(id: number,
       {}
     ),
     RouteType.Rail,
-    "LN",
+    toc,
     stp,
     true,
     true
