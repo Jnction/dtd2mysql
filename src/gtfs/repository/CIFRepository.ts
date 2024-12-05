@@ -50,9 +50,8 @@ export class CIFRepository {
   /**
    * Return all the stops with some configurable long/lat applied
    */
-  public async getStops(): Promise<Stop[]> {
-    return [...(await this.stops).values()]
-        .sort((a, b) => a.stop_id === b.stop_id ? 0 : a.stop_id < b.stop_id ? -1 : 1);
+  public getStops(): Promise<Stop[]> {
+    return this.flatStops;
   }
 
   public async findStopById(stopId: string) {
@@ -207,6 +206,9 @@ export class CIFRepository {
     
     return stopById;
   })();
+
+  private flatStops = this.stops.then(stops => [...stops.values()]
+      .sort((a, b) => a.stop_id === b.stop_id ? 0 : a.stop_id < b.stop_id ? -1 : 1));
 
   /**
    * Return the schedules and z trains. These queries probably require some explanation:
