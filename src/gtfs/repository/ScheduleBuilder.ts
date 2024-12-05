@@ -405,9 +405,8 @@ export class ScheduleBuilder {
       // the following destination fields take false destination into account
       const destination_index = getFalseDestinationIndex() ?? stops.length - 1;
       const destination_name = await repository.getStopName(stops[destination_index].stop_id);
-      const destination_tiploc = stops[destination_index].tiploc_code;
 
-      const via_tiplocs = stops.slice(i + 1, destination_index)
+      const via_tiplocs = stops.slice(i + 1, destination_index + 1)
           .filter(s => s.arrival_time !== null)
           .map(s => s.tiploc_code)
 
@@ -419,7 +418,6 @@ export class ScheduleBuilder {
       const via = getViaText(
           stop_code,
           via_tiplocs,
-          destination_tiploc
       );
       
       stop.stop_headsign = via !== undefined ? `${destination_name ?? destination_name} (${via})` : destination_name;
@@ -427,7 +425,8 @@ export class ScheduleBuilder {
   }
 }
 
-export function getViaText(stop_code : CRS, via_tiplocs : TIPLOC[], destination_tiploc : TIPLOC) : string | undefined {
+export function getViaText(stop_code : CRS, calling_tiplocs : TIPLOC[]) : string | undefined {
+  const destination_tiploc = calling_tiplocs[calling_tiplocs.length - 1];
   return viaText[stop_code]?.reduce(
       // The wiki says that:
       // False destinations aren't considered for the purposes of determining the via text,
@@ -435,15 +434,15 @@ export function getViaText(stop_code : CRS, via_tiplocs : TIPLOC[], destination_
       //
       // however, it is not true in the real world. It is displayed as Poppleton only despite an entry of Leeds-York via Harrogate in the XML.
       (carry : ViaText[string][number] | null, item) => {
-        const loc1index = via_tiplocs.indexOf(item.Loc1);
-        const loc2index = item.Loc2 === null ? null : via_tiplocs.indexOf(item.Loc2);
+        const loc1index = calling_tiplocs.indexOf(item.Loc1);
+        const loc2index = item.Loc2 === null ? null : calling_tiplocs.indexOf(item.Loc2);
         if (item.At === stop_code && item.Dest === destination_tiploc
             && loc1index >= 0 && (item.Loc2 === null || loc2index! >= 0)
             && (item.Loc2 === null || loc2index! > loc1index)) {
           if (carry === null) {
             return item;
           }
-          const carryIndex = via_tiplocs.indexOf(carry.Loc1);
+          const carryIndex = calling_tiplocs.indexOf(carry.Loc1);
           return loc1index < carryIndex ? item : carry;
         }
         return carry;

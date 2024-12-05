@@ -63,8 +63,7 @@ export class Schedule implements OverlayRecord {
   public async toTrip(serviceId: string, routeId: number, cifRepository : CIFRepository): Promise<Trip> {
     const viaText = getViaText(
         this.stopTimes[0].stop_code ?? '',
-        this.stopTimes.slice(1, -1).map(stopTime => stopTime.tiploc_code),
-        this.stopTimes[this.stopTimes.length - 1].tiploc_code
+        this.stopTimes.slice(1).map(stopTime => stopTime.tiploc_code),
     );
     const viaTextWithBrackets = viaText !== undefined ? ` (${viaText})` : '';
     return {
