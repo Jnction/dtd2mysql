@@ -9,6 +9,7 @@ import {Trip} from "../file/Trip";
 import {CIFRepository} from '../repository/CIFRepository';
 import {OverlayRecord, RSID, STP, TUID} from "./OverlayRecord";
 import {ScheduleCalendar} from "./ScheduleCalendar";
+import { getViaText } from '../repository/ScheduleBuilder';
 
 /**
  * A CIF schedule (BS record)
@@ -60,11 +61,16 @@ export class Schedule implements OverlayRecord {
    * Convert to a GTFS Trip
    */
   public async toTrip(serviceId: string, routeId: number, cifRepository : CIFRepository): Promise<Trip> {
+    const viaText = getViaText(
+        this.stopTimes[0].stop_code ?? '',
+        this.stopTimes.slice(1).map(stopTime => stopTime.tiploc_code),
+    );
+    const viaTextWithBrackets = viaText !== undefined ? ` (${viaText})` : '';
     return {
       route_id: routeId,
       service_id: serviceId,
       trip_id: this.tripId,
-      trip_headsign: await cifRepository.getStopName(this.destination) ?? this.destination,
+      trip_headsign: `${await cifRepository.getStopName(this.origin)} to ${await cifRepository.getStopName(this.destination)}${viaTextWithBrackets}`,
       trip_short_name: this.rsid?.substr(0, 6) ?? this.tuid,
       direction_id: 0,
       shape_id: this.getShapeId(),

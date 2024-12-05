@@ -1,14 +1,13 @@
 import {Query} from 'mysql2';
 import {viaText} from '../../../config/gtfs/vias';
 import {RouteType} from "../file/Route";
-import {CRS} from '../file/Stop';
+import {CRS, TIPLOC} from '../file/Stop';
 import {StopTime} from "../file/StopTime";
 import {IdGenerator, STP} from "../native/OverlayRecord";
 import {Schedule} from "../native/Schedule";
 import {ScheduleCalendar} from "../native/ScheduleCalendar";
 import {CIFRepository, ScheduleStopTimeRow, ViaText} from "./CIFRepository";
 import moment = require("moment");
-import { agencies } from "../../../config/gtfs/agency";
 
 const pickupActivities = ["T ", "TB", "TF", "U "];
 const dropOffActivities = ["T ", "TB", "TF", "D "];
@@ -168,10 +167,6 @@ export class ScheduleBuilder {
     const stops = schedule.stopTimes;
     if (stops.length === 0) return;
 
-    const destination_id = stops[stops.length - 1].stop_id;
-    const destination_tiploc = stops[stops.length - 1].tiploc_code;
-    const destination_name = await repository.getStopName(destination_id);
-    
     for (let i = 0; i < stops.length; ++i) {
 
       /**
@@ -406,39 +401,54 @@ export class ScheduleBuilder {
 
       const stop = stops[i];
       const stop_code = stop.stop_code ?? '';
-      const false_destination_index = getFalseDestinationIndex();
-      const false_destination = false_destination_index === null ? null : await repository.getStopName(stops[false_destination_index].stop_id);
 
-      const via_tiplocs = stops.slice(i + 1, false_destination_index ?? -1)
+      // the following destination fields take false destination into account
+      const destination_index = getFalseDestinationIndex() ?? stops.length - 1;
+      const destination_name = await repository.getStopName(stops[destination_index].stop_id);
+
+      const via_tiplocs = stops.slice(i + 1, destination_index + 1)
           .filter(s => s.arrival_time !== null)
           .map(s => s.tiploc_code)
 
-      const via = viaText[stop_code]?.reduce(
-        // The wiki says that:
-        // False destinations aren't considered for the purposes of determining the via text, 
-        // but would still be displayed (e.g. at Leeds, the Leeds-York via Harrogate service would be displayed as "Poppleton via Harrogate").
-        // 
-        // however, it is not true in the real world. It is displayed as Poppleton only despite an entry of Leeds-York via Harrogate in the XML.
-        (carry : ViaText[string][number] | null, item) => {
-          const loc1index = via_tiplocs.indexOf(item.Loc1);
-          const loc2index = item.Loc2 === null ? null : via_tiplocs.indexOf(item.Loc2);
-          if (item.At === stop_code && item.Dest === (false_destination_index === null ? destination_tiploc : stops[false_destination_index].tiploc_code)
-              && loc1index >= 0 && (item.Loc2 === null || loc2index! >= 0)
-              && (item.Loc2 === null || loc2index! > loc1index)) {
-            if (carry === null) {
-              return item;
-            }
-            const carryIndex = via_tiplocs.indexOf(carry.Loc1);
-            return loc1index < carryIndex ? item : carry;
-          }
-          return carry;
-        },
-        null,
-      )?.Viatext;
+      // The wiki says that:
+      // False destinations aren't considered for the purposes of determining the via text,
+      // but would still be displayed (e.g. at Leeds, the Leeds-York via Harrogate service would be displayed as "Poppleton via Harrogate").
+      //
+      // however, it is not true in the real world. It is displayed as Poppleton only despite an entry of Leeds-York via Harrogate in the XML.
+      const via = getViaText(
+          stop_code,
+          via_tiplocs,
+      );
       
-      stop.stop_headsign = via !== undefined ? `${false_destination ?? destination_name} (${via})` : false_destination;
+      stop.stop_headsign = via !== undefined ? `${destination_name ?? destination_name} (${via})` : destination_name;
     }
   }
+}
+
+export function getViaText(stop_code : CRS, calling_tiplocs : TIPLOC[]) : string | undefined {
+  const destination_tiploc = calling_tiplocs[calling_tiplocs.length - 1];
+  return viaText[stop_code]?.reduce(
+      // The wiki says that:
+      // False destinations aren't considered for the purposes of determining the via text,
+      // but would still be displayed (e.g. at Leeds, the Leeds-York via Harrogate service would be displayed as "Poppleton via Harrogate").
+      //
+      // however, it is not true in the real world. It is displayed as Poppleton only despite an entry of Leeds-York via Harrogate in the XML.
+      (carry : ViaText[string][number] | null, item) => {
+        const loc1index = calling_tiplocs.indexOf(item.Loc1);
+        const loc2index = item.Loc2 === null ? null : calling_tiplocs.indexOf(item.Loc2);
+        if (item.At === stop_code && item.Dest === destination_tiploc
+            && loc1index >= 0 && (item.Loc2 === null || loc2index! >= 0)
+            && (item.Loc2 === null || loc2index! > loc1index)) {
+          if (carry === null) {
+            return item;
+          }
+          const carryIndex = calling_tiplocs.indexOf(carry.Loc1);
+          return loc1index < carryIndex ? item : carry;
+        }
+        return carry;
+      },
+      null,
+  )?.Viatext;
 }
 
 export interface ScheduleResults {
