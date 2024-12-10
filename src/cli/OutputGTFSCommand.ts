@@ -1,6 +1,6 @@
 import * as moment from 'moment';
 import {FeedInfo} from '../gtfs/file/FeedInfo';
-import {Route} from '../gtfs/file/Route';
+import {Route, RouteType} from '../gtfs/file/Route';
 import {CLICommand} from "./CLICommand";
 import {CIFRepository} from "../gtfs/repository/CIFRepository";
 import {Schedule} from "../gtfs/native/Schedule";
@@ -14,9 +14,9 @@ import {ScheduleBuilder, ScheduleResults} from "../gtfs/repository/ScheduleBuild
 import {GTFSOutput} from "../gtfs/output/GTFSOutput";
 import * as fs from "fs";
 import {addLateNightServices} from "../gtfs/command/AddLateNightServices";
+import {Accessibility} from "../gtfs/file/Trip";
 import streamToPromise = require("stream-to-promise");
 import objectHash = require('object-hash');
-import {Accessibility} from "../gtfs/file/Trip";
 
 export class OutputGTFSCommand implements CLICommand {
   private baseDir: string;
@@ -120,6 +120,10 @@ export class OutputGTFSCommand implements CLICommand {
       const serviceId = serviceIds[schedule.calendar.id];
       const bikesAllowed = (() => {
         // TODO: need a way to define temporary bike ban
+
+        if (route.route_type === RouteType.ReplacementBus) {
+          return Accessibility.NO;
+        }
 
         const operator = schedule.operator;
         // Lumo trains don't allow bikes at all
