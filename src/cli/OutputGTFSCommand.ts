@@ -1,4 +1,5 @@
 import * as moment from 'moment';
+import {Attribution} from '../gtfs/file/Attribution';
 import {FeedInfo} from '../gtfs/file/FeedInfo';
 import {Route} from '../gtfs/file/Route';
 import {CLICommand} from "./CLICommand";
@@ -50,6 +51,21 @@ export class OutputGTFSCommand implements CLICommand {
       feed_start_date: moment(new Date(now.setDate(now.getDate() + CIFRepository.DATE_OFFSET_START))).format('YYYYMMDD'),
       feed_end_date: moment(new Date(now.setDate(now.getDate() + CIFRepository.DATE_OFFSET_END))).format('YYYYMMDD'),
     }], "feed_info.txt");
+    const attributionP = this.copy(<Attribution[]>[
+      {
+        organization_name : "National Rail Enquiries",
+        is_producer : 0,
+        is_operator : 0,
+        is_authority : 1,
+        attribution_url : "https://opendata.nationalrail.co.uk/terms",
+      },
+      {
+        organization_name : "Aubin MaaS Limited",
+        is_producer : 1,
+        is_operator : 0,
+        is_authority : 0,
+      },
+    ], "attributions.txt");
     const transfersP = this.copy(this.repository.getTransfers(), "transfers.txt");
     const stopsP = this.copy(this.repository.getStops(), "stops.txt");
     const agencyP = this.copy(agencies, "agency.txt");
@@ -64,6 +80,7 @@ export class OutputGTFSCommand implements CLICommand {
 
     await Promise.all([
       infoP,
+      attributionP,
       agencyP,
       transfersP,
       stopsP,
