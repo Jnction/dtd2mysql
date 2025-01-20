@@ -139,9 +139,6 @@ export class Schedule implements OverlayRecord {
     // https://blog.tfl.gov.uk/2024/03/08/london-overground-lines/
     const callback = this.stopAtStation.bind(this);
     if (prefix === 'LO') {
-      if (['DLJ', 'SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
-        return {route_id : 'WIN', name : 'Windrush', long_name : 'Windrush line', colour : 0xDC241F};
-      }
       if (['LST', 'HAC', 'SKW', 'EDR', 'ENF', 'CHN', 'WST', 'CHI'].some(callback)) {
         return {route_id : 'WEA', name : 'Weaver', long_name : 'Weaver line', colour : 0x9B0058};
       }
@@ -150,6 +147,9 @@ export class Schedule implements OverlayRecord {
       }
       if (['KPA', 'SPB', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
           return {route_id : 'MIL', name : 'Mildmay', long_name : 'Mildmay line', colour : 0x006FE6};
+      }
+      if (['DLJ', 'SDC', 'ZCW', 'SQE', 'NXG', 'NWX', 'SYD', 'WCY', 'CYP'].some(callback)) {
+        return {route_id : 'WIN', name : 'Windrush', long_name : 'Windrush line', colour : 0xDC241F};
       }
       // I am considering Stratford - Willesden / Watford through-running services to be Mildmay line here
       if (['EUS', 'KBN', 'SBP', 'HRW', 'WFH', 'WFJ'].some(callback)) {
