@@ -352,10 +352,18 @@ export class CIFRepository {
 
   public async getStopName(stop_id : AtcoCode) : Promise<string | null> {
     const longName = await this.getFullStopName(stop_id);
-    if (longName === null || longName.toUpperCase().includes('MAESTEG')) {
-      return longName;
+    if (longName === null) {
+      return null;
     }
-    return longName.replace(/ \(.*\)$/g, '');
+    return CIFRepository.shortenStopName(longName);
+  }
+
+  private static shortenStopName(longName : string) {
+    const name = longName.replace(/ \(Platform .*\)$/g, '');
+    if (name.toUpperCase().includes('MAESTEG') || name.toUpperCase().includes('KENSINGTON')) {
+      return name;
+    }
+    return name.replace(/ \(.*\)$/g, '');
   }
 
   public async getStopId(code : CRS) : Promise<AtcoCode | null> {
