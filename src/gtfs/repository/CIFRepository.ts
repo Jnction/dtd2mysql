@@ -187,6 +187,12 @@ export class CIFRepository {
       } else {
         const result = Object.assign(stop, station_data);
         delete result['platforms'];
+        if (result.stop_code === 'STP') {
+          result.stop_name = 'London St Pancras';
+        }
+        if (result.stop_code === 'SPX') {
+          result.stop_name = 'London St Pancras International';
+        }
         return result;
       }
     })) {
