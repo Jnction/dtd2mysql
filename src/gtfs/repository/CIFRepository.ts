@@ -361,6 +361,10 @@ export class CIFRepository {
     if (longName === null) {
       return null;
     }
+    return CIFRepository.shortenStopName(longName);
+  }
+
+  private static shortenStopName(longName : string) {
     const name = longName.replace(/ \(Platform .*\)$/g, '');
     if (name.toUpperCase().includes('MAESTEG') || name.toUpperCase().includes('KENSINGTON')) {
       return name;
