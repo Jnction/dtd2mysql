@@ -122,7 +122,7 @@ export class Association implements OverlayRecord {
       assoc.id,
       tripId,
       stops,
-      tuid,
+      assoc.tuid,
       assoc.rsid,
       // only take the part of the schedule that the association applies to
       newCalendar,

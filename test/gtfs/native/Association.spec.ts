@@ -25,7 +25,7 @@ describe("Association", () => {
 
     const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX").apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("A_B");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("TON");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
     chai.expect(result.stopTimes[1].stop_id).to.equal("PDW");
@@ -54,7 +54,7 @@ describe("Association", () => {
 
     const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX").apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("A_B");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("PDW");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
     chai.expect(result.stopTimes[0].trip_id).to.equal('A_B_20170710_20170716');
@@ -87,7 +87,7 @@ describe("Association", () => {
 
     const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX", DateIndicator.Next).apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("A_B");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.calendar.runsFrom.isSame("2017-07-10")).to.be.true;
     chai.expect(result.calendar.runsTo.isSame("2017-07-16")).to.be.true;
     chai.expect(result.stopTimes[0].stop_id).to.equal("TON");
@@ -118,7 +118,7 @@ describe("Association", () => {
 
     const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX", DateIndicator.Next).apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("A_B");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.calendar.runsFrom.isSame("2017-07-10")).to.be.true;
     chai.expect(result.calendar.runsTo.isSame("2017-07-16")).to.be.true;
     chai.expect(result.stopTimes[0].stop_id).to.equal("TON");
@@ -149,7 +149,7 @@ describe("Association", () => {
 
     const [result] = association(base, assoc, AssociationType.Join, "ASHXXXX", DateIndicator.Previous).apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("B_A");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.calendar.runsFrom.isSame("2017-07-09")).to.be.true;
     chai.expect(result.calendar.runsTo.isSame("2017-07-15")).to.be.true;
     chai.expect(result.stopTimes[0].stop_id).to.equal("DOV");
@@ -179,7 +179,7 @@ describe("Association", () => {
 
     const [result] = association(base, assoc, AssociationType.Split, "ASHXXXX").apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("A_B");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("TON");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
     chai.expect(result.stopTimes[1].stop_id).to.equal("PDW");
@@ -208,7 +208,7 @@ describe("Association", () => {
 
     const [result] = association(base, assoc, AssociationType.Join, "ASHXXXX").apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("B_A");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("DOV");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
     chai.expect(result.stopTimes[1].stop_id).to.equal("ASH");
@@ -239,7 +239,7 @@ describe("Association", () => {
 
     const [result] = association(base, assoc, AssociationType.Join, "ASHXXXX").apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("B_A");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("A");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
     chai.expect(result.stopTimes[0].trip_id).to.equal('B_A_20170710_20170716');
@@ -279,7 +279,7 @@ describe("Association", () => {
 
     const [result] = association(base, assoc, AssociationType.Join, "ASHXXXX").apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("B_A");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.stopTimes[0].stop_id).to.equal("DOV");
     chai.expect(result.stopTimes[0].stop_sequence).to.equal(1);
     chai.expect(result.stopTimes[1].stop_id).to.equal("ASH");
@@ -323,7 +323,7 @@ describe("Association", () => {
 
     const [result, other] = association1.apply(base, assoc, idGenerator());
 
-    chai.expect(result.tuid).to.equal("A_B");
+    chai.expect(result.tuid).to.equal("B");
     chai.expect(result.calendar.runsFrom.isSame("2017-07-20")).to.equal(true);
     chai.expect(result.calendar.runsTo.isSame("2017-08-16")).to.equal(true);
     chai.expect(other.tuid).to.equal("B");
