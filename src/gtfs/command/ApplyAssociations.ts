@@ -15,6 +15,7 @@ export function applyAssociations(schedulesByTuid: ScheduleIndex,
                                   associationsIndex: AssociationIndex,
                                   idGenerator: IdGenerator): ScheduleIndex {
 
+  const mergedSchedules = <Schedule[]>[];
   for (const associations of Object.values(associationsIndex)) {
     // for each association
     for (const association of associations) {
@@ -37,7 +38,7 @@ export function applyAssociations(schedulesByTuid: ScheduleIndex,
           const [replacement, ...associatedSchedules] = association.apply(baseSchedules[0], assocSchedule,idGenerator);
 
           // add the merged base and associated schedule to the TUID index
-          (schedulesByTuid[replacement.tuid] = schedulesByTuid[replacement.tuid] || []).push(replacement);
+          mergedSchedules.push(replacement);
 
           // remove the original associated schedule and replace with any substitute schedules created
           schedulesByTuid[assocSchedule.tuid].splice(
@@ -46,6 +47,10 @@ export function applyAssociations(schedulesByTuid: ScheduleIndex,
         }
       }
     }
+  }
+  
+  for (const replacement of mergedSchedules) {
+    (schedulesByTuid[replacement.tuid] = schedulesByTuid[replacement.tuid] || []).push(replacement);
   }
 
   return schedulesByTuid;

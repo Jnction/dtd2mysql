@@ -46,10 +46,10 @@ describe("ApplyAssociations", () => {
       idGenerator()
     );
 
-    const [result1, result2, other] = resultByTuid["A_B"];
+    const [result1, result2, other] = resultByTuid["B"];
 
     // make sure that it only matches base1 to assoc1 and base2 to assoc2
-    chai.expect(result1.tuid).to.equal("A_B");
+    chai.expect(result1.tuid).to.equal("B");
     chai.expect(result1.calendar.runsFrom.isSame("2017-07-10")).to.be.true;
     chai.expect(result1.calendar.runsTo.isSame("2017-07-10")).to.be.true;
     chai.expect(result1.stopTimes[0].stop_id).to.equal("TON");
@@ -62,7 +62,7 @@ describe("ApplyAssociations", () => {
     chai.expect(result1.stopTimes[3].stop_id).to.equal("DOV");
     chai.expect(result1.stopTimes[3].stop_sequence).to.equal(4);
     chai.expect(result1.stopTimes[3].departure_time).to.equal("25:00:30");
-    chai.expect(result2.tuid).to.equal("A_B");
+    chai.expect(result2.tuid).to.equal("B");
     chai.expect(result2.calendar.runsFrom.isSame("2017-07-11")).to.be.true;
     chai.expect(result2.calendar.runsTo.isSame("2017-07-11")).to.be.true;
     chai.expect(result2.stopTimes[0].stop_id).to.equal("TON");
