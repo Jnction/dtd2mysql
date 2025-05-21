@@ -1,6 +1,6 @@
 import * as moment from 'moment';
 import {FeedInfo} from '../gtfs/file/FeedInfo';
-import {Route} from '../gtfs/file/Route';
+import {Route, RouteType} from '../gtfs/file/Route';
 import {CLICommand} from "./CLICommand";
 import {CIFRepository} from "../gtfs/repository/CIFRepository";
 import {Schedule} from "../gtfs/native/Schedule";
@@ -14,6 +14,7 @@ import {ScheduleBuilder, ScheduleResults} from "../gtfs/repository/ScheduleBuild
 import {GTFSOutput} from "../gtfs/output/GTFSOutput";
 import * as fs from "fs";
 import {addLateNightServices} from "../gtfs/command/AddLateNightServices";
+import {Accessibility} from "../gtfs/file/Trip";
 import streamToPromise = require("stream-to-promise");
 import objectHash = require('object-hash');
 
@@ -117,8 +118,45 @@ export class OutputGTFSCommand implements CLICommand {
       routes[routeHash] = routes[routeHash] || route;
       const routeId = routes[routeHash].route_id;
       const serviceId = serviceIds[schedule.calendar.id];
+      const bikesAllowed = (() => {
+        // TODO: need a way to define temporary bike ban
 
-      trips.write(await schedule.toTrip(serviceId, routeId, this.repository));
+        if (route.route_type === RouteType.ReplacementBus) {
+          return Accessibility.NO;
+        }
+
+        const operator = schedule.operator;
+        // Lumo trains don't allow bikes at all
+        if (operator === 'LD') {
+          return Accessibility.NO;
+        }
+
+        // Stansted Express trains don't allow bike at all
+        if (route.route_short_name === 'Stansted Express') {
+          return Accessibility.NO;
+        }
+
+        // The following operators have some peak restrictions. Leave them as unknown if the train runs on a weekday
+        // before GTFS gets support for stop-specific restrictions.
+        // TODO: handle bank holidays
+        // https://github.com/google/transit/issues/466
+        if ([1, 2, 3, 4, 5].some(weekday => schedule.calendar.days[weekday])
+            && operator !== null
+            && ['XR', 'GW', 'HX', 'LO', 'SE', 'TL', 'AW', 'CC', 'CH', 'EM', 'GX', 'GN', 'LE', 'LM', 'SW', 'SN'].includes(operator)) {
+          return Accessibility.UNKNOWN;
+        }
+
+        // If it is a Great Northern train starting / ending at Moorgate, leave it as unknown as bikes are not allowed
+        // into the tunnel, but may still be allowed out of it
+        if (schedule.stopAtStation('MOG') !== undefined) {
+          return Accessibility.UNKNOWN;
+        }
+
+        // All the other trains should allow bikes, although a booking may be required
+        return Accessibility.YES;
+      })();
+
+      trips.write(await schedule.toTrip(serviceId, routeId, this.repository, bikesAllowed));
       schedule.stopTimes.filter(r =>
           r.stop_code !== null // filter out technical stops at non-station
           && (r.departure_time != null || r.arrival_time != null) // filter out non-public stops

@@ -9,4 +9,5 @@ export interface Agency {
   agency_lang: string;
   agency_phone:   string;
   agency_fare_url: string | null;
+  bike_policy_url?: string;
 }
