@@ -208,7 +208,7 @@ export class Schedule implements OverlayRecord {
       "ZZ": {name: "Other operator", colour: null}
     };
 
-    return {route_id : prefix, ...tocData[prefix ?? ''] ?? {name : rsid, colour : null}};
+    return {route_id : prefix, ...tocData[prefix ?? ''] ?? {name : prefix, colour : null}};
   }
 
   /**
