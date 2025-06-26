@@ -7,6 +7,7 @@ import {Days} from "../../../src/gtfs/native/ScheduleCalendar";
 
 describe("AddLateNightServices", () => {
   const WEEK_DAYS: Days = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 0, 6: 0 };
+  const SUNDAY: Days = {0: 1, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
 
   it("merges schedules where they are the same", () => {
     const baseSchedules = [
@@ -36,7 +37,28 @@ describe("AddLateNightServices", () => {
     chai.expect(schedules[1].calendar.runsFrom.isSame("20181001")).to.be.true;
     chai.expect(schedules[1].calendar.runsTo.isSame("20181031")).to.be.true;
   });
+  
+  it("identifies night Overground service on repeated hour", () => {
+    const baseSchedules = [
+      schedule(1, "P12345", "2024-10-01", "2024-10-31", STP.Permanent, SUNDAY, [
+        stop(1, "DLJ", "01:30"),
+        stop(2, "CNN", "01:40"),
+        stop(3, "HHY", "01:50")
+      ], "LO"),
+      schedule(2, "F12345", "2024-10-27", "2024-10-27", STP.New, SUNDAY, [
+        stop(1, "DLJ", "01:31"),
+        stop(2, "CNN", "01:41"),
+        stop(3, "HHY", "01:51")
+      ], "LO"),
+    ];
 
+    const schedules = addLateNightServices(baseSchedules, idGenerator());
+
+    chai.expect(schedules[1].calendar.runsFrom.isSame("20241027")).to.be.true;
+    chai.expect(schedules[1].calendar.runsTo.isSame("20241027")).to.be.true;
+    chai.expect(schedules[0].stopTimes[0].departure_time).equals("25:30:30");
+    chai.expect(schedules[1].stopTimes[0].departure_time).equals("01:31:30");
+  });
 });
 
 function *idGenerator(): IterableIterator<number> {
