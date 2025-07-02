@@ -147,9 +147,14 @@ export class Schedule implements OverlayRecord {
       if (['LST', 'HAC', 'SKW', 'EDR', 'ENF', 'CHN', 'WST', 'CHI'].some(callback)) {
         return {route_id : 'WEA', name : 'Weaver', long_name : 'Weaver line', colour : 0x9B0058};
       }
+      // some Suffragette line services run through to Willesden Junction
+      if (['HRY', 'WMW', 'LER', 'BKG'].some(callback)) {
+        return {route_id : 'SUF', name : 'Suffragette', long_name : 'Suffragette line', colour : 0x18A95D};
+      }
       if (['RMF', 'UPM'].some(callback)) {
         return {route_id : 'LIB', name : 'Liberty', long_name : 'Liberty line', colour : 0x61686B};
       }
+
       if (['KPA', 'SPB', 'RMD', 'SAT', 'HDH', 'CMD', 'HKC', 'SRA'].some(callback)) {
           return {route_id : 'MIL', name : 'Mildmay', long_name : 'Mildmay line', colour : 0x006FE6};
       }
@@ -159,9 +164,6 @@ export class Schedule implements OverlayRecord {
       // I am considering Stratford - Willesden / Watford through-running services to be Mildmay line here
       if (['EUS', 'KBN', 'SBP', 'HRW', 'WFH', 'WFJ'].some(callback)) {
         return {route_id : 'LIO', name : 'Lioness', long_name : 'Lioness line', colour : 0xFFA600};
-      }
-      if (['HRY', 'WMW', 'LER', 'BKG'].some(callback)) {
-        return {route_id : 'SUF', name : 'Suffragette', long_name : 'Suffragette line', colour : 0x18A95D};
       }
     }
 
