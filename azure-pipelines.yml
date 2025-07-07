@@ -4,7 +4,7 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
 pool:
-  vmImage: ubuntu-latest
+  name: Servology
 
 steps:
 - task: NodeTool@0
