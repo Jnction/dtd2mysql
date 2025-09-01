@@ -9,7 +9,7 @@ export interface Trip {
   service_id: string;
   trip_id: string;
   trip_headsign: string | null;
-  trip_short_name: RSID;
+  trip_short_name: RSID | null;
   direction_id: 0 | 1;
   block_id?: string;
   shape_id?: string;

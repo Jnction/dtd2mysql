@@ -70,7 +70,7 @@ export class Schedule implements OverlayRecord {
       service_id: serviceId,
       trip_id: this.tripId,
       trip_headsign: `${await cifRepository.getStopName(this.origin)} to ${await cifRepository.getStopName(this.destination)}${viaTextWithBrackets}`,
-      trip_short_name: this.rsid?.substr(0, 6) ?? this.tuid,
+      trip_short_name: this.reservationPossible ? (this.rsid?.substr(0, 6) ?? this.tuid) : null,
       direction_id: 0,
       shape_id: this.getShapeId(),
       wheelchair_accessible: Accessibility.YES,
