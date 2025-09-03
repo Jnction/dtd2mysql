@@ -1,6 +1,3 @@
-## [10.2.1] - 2025-09-01
-* Do not provide the trip_short_name for non-reservable trains
-
 ## [10.2.0] - 2025-07-09
 * Add bike policy and experimental support for bike on train on weekends
 * Improve Overground line detection
