@@ -1,3 +1,6 @@
+## [10.2.2] - 2025-09-17
+* Use suburban rail as the route type for London Overground, Elizabeth line and Merseyrail routes.
+
 ## [10.2.0] - 2025-07-09
 * Add bike policy and experimental support for bike on train on weekends
 * Improve Overground line detection

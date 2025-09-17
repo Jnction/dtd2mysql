@@ -5,7 +5,7 @@ export enum Accessibility {
 }
 
 export interface Trip {
-  route_id: number;
+  route_id: string;
   service_id: string;
   trip_id: string;
   trip_headsign: string | null;

@@ -117,7 +117,7 @@ export class OutputGTFSCommand implements CLICommand {
       const stopTimes = this.output.open(`${this.baseDir}/stop_times.txt`);
       const routeFile = this.output.open(`${this.baseDir}/routes.txt`);
     const shapes = this.output.open(`${this.baseDir}/shapes.txt`);
-    const routes = {};
+    const routes : {[key : string] : Route} = {};
     const writtenShapes = new Set();
 
     function getRouteHash(route : Route) {
@@ -193,6 +193,9 @@ export class OutputGTFSCommand implements CLICommand {
     }
 
     for (const route of Object.values(routes)) {
+      if (route.route_type === RouteType.Rail && ['=LO', '=XR', '=ME'].includes(route.agency_id)) {
+        route.route_type = RouteType.SuburbanRail;
+      }
       routeFile.write(route);
     }
 

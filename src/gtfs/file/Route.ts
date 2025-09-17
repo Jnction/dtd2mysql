@@ -22,7 +22,8 @@ export enum RouteType {
   Cable = 5,
   Gondola = 6,
   Funicular = 7,
-  ReplacementBus = 714
+  SuburbanRail = 109,
+  ReplacementBus = 714,
 }
 
 export type RouteID = string;

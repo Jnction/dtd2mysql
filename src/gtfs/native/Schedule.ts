@@ -59,7 +59,7 @@ export class Schedule implements OverlayRecord {
   /**
    * Convert to a GTFS Trip
    */
-  public async toTrip(serviceId: string, routeId: number, cifRepository : CIFRepository, bikesAllowed : Accessibility): Promise<Trip> {
+  public async toTrip(serviceId: string, routeId: string, cifRepository : CIFRepository, bikesAllowed : Accessibility): Promise<Trip> {
     const viaText = getViaText(
         this.stopTimes[0].stop_code ?? '',
         this.stopTimes.slice(1).map(stopTime => stopTime.tiploc_code),
