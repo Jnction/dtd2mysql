@@ -158,11 +158,244 @@ export class OutputGTFSCommand implements CLICommand {
         // TODO: handle bank holidays
         // https://github.com/google/transit/issues/466
         if ([1, 2, 3, 4, 5].some(weekday => schedule.calendar.days[weekday])
-            && operator !== null
-            && ['XR', 'GW', 'HX', 'LO', 'SE', 'TL', 'AW', 'CC', 'CH', 'EM', 'GX', 'GN', 'LE', 'LM', 'SW', 'SN'].includes(operator)) {
-          return Accessibility.UNKNOWN;
+            && operator !== null) {
+            function arrivesBetween(crs: string, start: string, end: string) {
+                const stop = schedule.stopAtStation(crs);
+                return stop !== undefined && stop !== schedule.stopTimes[0] && stop.arrival_time !== null && stop.arrival_time > start && stop.arrival_time <= end;
+            }
+            
+            function departsBetween(crs: string, start: string, end: string) {
+                const stop = schedule.stopAtStation(crs);
+                return stop !== undefined && stop !== schedule.stopTimes[schedule.stopTimes.length - 1] && stop.departure_time !== null && stop.departure_time >= start && stop.departure_time < end;
+            }
+            
+            switch (operator) {
+            case 'XR': {
+                for (const stop of ['PAD', 'PDX', 'LST', 'LSX']) {
+                    if (arrivesBetween(stop, "07:30:00", "09:30:00")) {
+                        // no bikes into Central London, may be allowed out of it
+                        return Accessibility.UNKNOWN;
+                    }
+                    if (departsBetween(stop, "16:00:00", "19:00:00")) {
+                        // no bikes out of Central London, may be allowed into it
+                        return Accessibility.UNKNOWN;
+                    }
+                }
+                // between Paddington, Liverpool Street or Abbey Wood
+                {
+                    // eastbound
+                    const paddington = schedule.stopAtStation('PDX')?.departure_time;
+                    const liverpool_street = schedule.stopAtStation('LSX')?.arrival_time;
+                    const abbey_wood = schedule.stopAtStation('ABX')?.arrival_time;
+                    if (paddington != null && liverpool_street != null && liverpool_street > paddington) {
+                        if (paddington >= "07:30:00" && paddington < "09:30:00" || paddington >= "16:00:00" && paddington < "19:00:00") {
+                            return Accessibility.UNKNOWN;
+                        }
+                        for (const stop of [liverpool_street, abbey_wood]) {
+                            if (stop != null && (
+                                stop > "07:30:00" && stop <= "09:30:00" || stop > "16:00:00" && stop <= "19:00:00"
+                            )) {
+                                return Accessibility.UNKNOWN;
+                            }
+                        }
+                    }
+                }
+                {
+                    // westbound
+                    const paddington = schedule.stopAtStation('PDX')?.arrival_time;
+                    const liverpool_street = schedule.stopAtStation('LSX')?.departure_time;
+                    const abbey_wood = schedule.stopAtStation('ABX')?.departure_time;
+                    if (paddington != null && liverpool_street != null && liverpool_street < paddington) {
+                        if (paddington > "07:30:00" && paddington <= "09:30:00" || paddington > "16:00:00" && paddington <= "19:00:00") {
+                            return Accessibility.UNKNOWN;
+                        }
+                        for (const stop of [liverpool_street, abbey_wood]) {
+                            if (stop != null && (
+                                stop >= "07:30:00" && stop < "09:30:00" || stop >= "16:00:00" && stop < "19:00:00"
+                            )) {
+                                return Accessibility.UNKNOWN;
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            case 'LO': {
+                if (schedule.stopTimes[0].stop_code === 'LST') {
+                    if (departsBetween('LST', "16:00:00", "19:00:00")) {
+                        return Accessibility.NO;
+                    }
+                } else if (schedule.stopTimes[schedule.stopTimes.length - 1].stop_code === 'LST') {
+                    if (arrivesBetween('LST', "07:30:00", "09:30:00")) {
+                        return Accessibility.NO;
+                    }
+                } else {
+                    for (let i = 0; i < schedule.stopTimes.length - 1; i++) {
+                        const departure_time = schedule.stopTimes[i].departure_time;
+                        const arrival_time = schedule.stopTimes[i + 1].arrival_time;
+                        if (departure_time !== null && arrival_time !== null) {
+                            if (departure_time < "09:30:00" && arrival_time > "07:30:00") {
+                                return Accessibility.UNKNOWN;
+                            }
+                            if (departure_time < "19:00:00" && arrival_time > "16:00:00") {
+                                return Accessibility.UNKNOWN;
+                            }
+                        }
+                    }
+                }
+            }
+                break;
+            case "HX":
+                if (schedule.stopTimes[0].stop_code === 'PAD') {
+                    if (departsBetween('PAD', "16:30:00", "19:00:00")) {
+                        return Accessibility.NO
+                    }
+                }
+                if (schedule.stopTimes[schedule.stopTimes.length - 1].stop_code === 'PAD') {
+                    if (departsBetween('HXX', "06:30:00", "10:00:00")) {
+                        return Accessibility.NO;
+                    }
+                }
+                break;
+            case "TL": {
+                for (const stop of ['STP', 'SPL', 'LBG', 'BFR']) {
+                    if (arrivesBetween(stop, "07:00:00", "10:00:00")) {
+                        return Accessibility.UNKNOWN;
+                    }
+                    if (departsBetween(stop, "16:00:00", "19:00:00")) {
+                        return Accessibility.UNKNOWN;
+                    }
+                }
+            }
+                break;
+            case "GN": {
+                for (const stop of ['KGX', 'MOG']) {
+                    if (arrivesBetween(stop, "07:00:00", "09:30:00")) {
+                        // it is a no, but there is an exception between Stevenage and Hertford North
+                        return Accessibility.UNKNOWN;
+                    }
+                    if (departsBetween(stop, "16:00:00", "19:00:00")) {
+                        return Accessibility.UNKNOWN;
+                    }
+                }
+                if (arrivesBetween('CBG', "07:45:00", "08:45:00")) {
+                    const arrival_at_cambridge = schedule.stopAtStation('CBG')?.arrival_time!;
+                    for (const stop of ['KLN', 'ELY', 'CMB']) {
+                        const arrival = schedule.stopAtStation(stop)?.arrival_time;
+                        if (arrival != null && arrival < arrival_at_cambridge) {
+                            // No before Cambridge
+                            return Accessibility.UNKNOWN;
+                        }
+                    }
+                }
+            }
+                break;
+            case "GX": {
+                if (schedule.stopTimes[0].stop_code === 'VIC') {
+                    const departure_time = schedule.stopTimes[0].departure_time;
+                    if (departure_time !== null && departure_time >= "16:00:00" && departure_time < "19:00:00") {
+                        return Accessibility.NO;
+                    }
+                }
+                if (schedule.stopTimes[schedule.stopTimes.length - 1].stop_code === 'VIC') {
+                    const arrival_time = schedule.stopTimes[schedule.stopTimes.length - 1].arrival_time;
+                    if (arrival_time !== null && arrival_time > "07:00:00" && arrival_time <= "10:00:00") {
+                        return Accessibility.NO;
+                    }
+                }
+            }
+                break;
+            case "SN": {
+                const victoria = schedule.stopAtStation('VIC');
+                const london_bridge = schedule.stopAtStation('LBG');
+                const kensington_olympia = schedule.stopAtStation('KPA');
+                const brighton = schedule.stopAtStation('BTN');
+                for (const stop of [victoria, london_bridge, kensington_olympia, brighton]) {
+                    if (stop !== schedule.stopTimes[0] && stop?.arrival_time != null && stop.arrival_time > "07:00:00" && stop.arrival_time <= "10:00:00") {
+                        // it is a no, but there may be exceptions on part of the route
+                        return Accessibility.UNKNOWN;
+                    }
+                    if (stop !== schedule.stopTimes[schedule.stopTimes.length - 1] && stop?.departure_time != null && stop.departure_time > "16:00:00" && stop.departure_time <= "19:00:00") {
+                        return Accessibility.UNKNOWN;
+                    }
+                }
+            }
+                break;
+            case "CC":
+                if (arrivesBetween('FST', "07:14:00", "09:30:00") || departsBetween('FST', "16:30:00", "18:35:00")) {
+                    return Accessibility.NO;
+                }
+                break;
+            case 'CH':
+                for (const stop of ['MYB', 'OXF', 'BMO']) {
+                    if (arrivesBetween(stop, "07:45:00", "10:00:00") || departsBetween(stop, "16:30:00", "19:30:00")) {
+                        return Accessibility.NO;
+                    }
+                }
+                break;
+            case 'GW':
+                if (arrivesBetween('PAD', "07:30:00", "09:30:00") || departsBetween('PAD', "16:00:00", "19:00:00")) {
+                    return Accessibility.NO;
+                }
+                break;
+            case 'SE':
+                for (const stop of ['STP', 'CHX', 'CST', 'VIC']) {
+                    if (arrivesBetween(stop, "07:00:00", "10:00:00") || departsBetween(stop, "16:00:00", "19:00:00")) {
+                        // no only within the commuter area
+                        return Accessibility.UNKNOWN;
+                    }
+                }
+                break;
+            case 'SW':
+                if (arrivesBetween('WAT', "07:15:00", "10:00:00") || departsBetween('WAT', "16:45:00", "19:00:00")) {
+                    // restriction on intermediate stations
+                    return Accessibility.UNKNOWN;
+                }
+                if (departsBetween('CLJ', "07:45:00", "09:00:00")) {
+                    const departure_time = schedule.stopAtStation('CLJ')?.departure_time!;
+                    const arrival_time = schedule.stopAtStation('RMD')?.arrival_time
+                        ?? schedule.stopAtStation('HOU')?.arrival_time;
+                    if (arrival_time != null && arrival_time > departure_time) {
+                        // restriction on Hounslow loop
+                        return Accessibility.UNKNOWN;
+                    }
+                }
+                break;
+            case 'EM':
+                if (schedule.stopTimes[0].stop_code === 'COR' && arrivesBetween('STP', "04:30:00", "10:00:00")) {
+                    return Accessibility.NO;
+                }
+                if (schedule.stopTimes[schedule.stopTimes.length - 1].stop_code === 'COR' && departsBetween(
+                    'STP',
+                    "16:00:00",
+                    "19:00:00"
+                )) {
+                    return Accessibility.NO;
+                }
+                break;
+            case 'LM':
+                if (arrivesBetween('EUS', "07:00:00", "10:00:00") || departsBetween('EUS', "16:00:00", "19:00:00")) {
+                    return Accessibility.NO;
+                }
+                break;
+            case 'LE':
+                if (arrivesBetween('CBG', "07:45:00", "08:45:00")) {
+                    return Accessibility.NO;
+                }
+                if (arrivesBetween('LST', "07:45:00", "09:45:00") || departsBetween('LST', "16:30:00", "18:30:00")) {
+                    if (schedule.stopTimes[0].stop_code !== 'NRW' && schedule.stopTimes[schedule.stopTimes.length - 1].stop_code !== 'NRW') {
+                        return Accessibility.NO;
+                    }
+                }
+                if (arrivesBetween('SRA', "07:45:00", "09:45:00") && schedule.stopTimes[0].stop_code !== 'LST' 
+                    || departsBetween('SRA', "16:30:00", "18:30:00")  && schedule.stopTimes[schedule.stopTimes.length - 1].stop_code !== 'LST' ) {
+                    if (schedule.stopTimes[0].stop_code !== 'NRW' && schedule.stopTimes[schedule.stopTimes.length - 1].stop_code !== 'NRW') {
+                        return Accessibility.NO;
+                    }
+                }
+            }
         }
-
+        
         // If it is a Great Northern train starting / ending at Moorgate, leave it as unknown as bikes are not allowed
         // into the tunnel, but may still be allowed out of it
         if (schedule.stopAtStation('MOG') !== undefined) {

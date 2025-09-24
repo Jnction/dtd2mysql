@@ -1,3 +1,6 @@
+## [10.3.0] - 2025-09-24
+* Implement weekday bike policy
+
 ## [10.2.2] - 2025-09-17
 * Use suburban rail as the route type for London Overground, Elizabeth line and Merseyrail routes.
 
