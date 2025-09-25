@@ -1,4 +1,5 @@
 ## [10.3.0] - 2025-09-24
+* Fix Luton DART TIPLOC locations
 * Implement weekday bike policy
 
 ## [10.2.2] - 2025-09-17
