@@ -366,7 +366,9 @@ export class CIFRepository {
 
   private static shortenStopName(longName : string) {
     const name = longName.replace(/ \(Platform .*\)$/g, '');
-    if (name.toUpperCase().includes('MAESTEG') || name.toUpperCase().includes('KENSINGTON')) {
+      if (name.toUpperCase().includes('MAESTEG')
+          || name.toUpperCase().includes('KENSINGTON')
+          || name.toUpperCase().includes('DEEPDENE')) {
       return name;
     }
     return name.replace(/ \(.*\)$/g, '');
