@@ -1,3 +1,6 @@
+## [10.3.2] - 2025-10-23
+* Fix Overground line detection for Watford Junction - Stratford, which should be Lioness line.
+
 ## [10.3.1] - 2025-10-01
 * Do not strip out (Deepdene) from Dorking (Deepdene)
 
