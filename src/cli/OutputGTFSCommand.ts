@@ -234,10 +234,10 @@ export class OutputGTFSCommand implements CLICommand {
                         const departure_time = schedule.stopTimes[i].departure_time;
                         const arrival_time = schedule.stopTimes[i + 1].arrival_time;
                         if (departure_time !== null && arrival_time !== null) {
-                            if (departure_time < "09:30:00" && arrival_time > "07:30:00") {
+                            if (departure_time >= "07:30:00" && departure_time < "09:30:00" || arrival_time > "07:30:00" && arrival_time <= "09:30:00") {
                                 return Accessibility.UNKNOWN;
                             }
-                            if (departure_time < "19:00:00" && arrival_time > "16:00:00") {
+                            if (departure_time >= "16:00:00" && departure_time < "19:00:00" || arrival_time > "16:00:00" && arrival_time <= "19:00:00") {
                                 return Accessibility.UNKNOWN;
                             }
                         }
