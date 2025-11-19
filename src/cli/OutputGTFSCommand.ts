@@ -36,6 +36,13 @@ export class OutputGTFSCommand implements CLICommand {
     if (!fs.existsSync(this.baseDir)) {
       throw new Error(`Output path ${this.baseDir} does not exist.`);
     }
+    
+    let disableStationMct = false;
+    if (argv.find(arg => arg === "--disable-station-mct")) {
+        disableStationMct = true;
+        // noinspection AssignmentToFunctionParameterJS
+        argv = argv.filter(arg => arg !== "--disable-station-mct");
+    }
 
     if (argv.length > 4) {
       const json = JSON.parse(fs.readFileSync(argv[4], 'utf-8'));
@@ -67,7 +74,7 @@ export class OutputGTFSCommand implements CLICommand {
         is_authority : 0,
       },
     ], "attributions.txt");
-    const transfersP = this.copy(this.repository.getTransfers(), "transfers.txt");
+    const transfersP = this.copy(this.repository.getTransfers(disableStationMct), "transfers.txt");
     const stopsP = this.copy(this.repository.getStops(), "stops.txt");
     const agencyP = this.copy(agencies, "agency.txt");
     const fixedLinksP = this.copy(this.repository.getFixedLinks(), "links.txt");

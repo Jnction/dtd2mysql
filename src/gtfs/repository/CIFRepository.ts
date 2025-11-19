@@ -33,22 +33,23 @@ export class CIFRepository {
   /**
    * Return the interchange time between each station
    */
-  public async getTransfers(): Promise<Transfer[]> {
-    const [results] = await this.db.query<Transfer>(`
-      SELECT
-        CONCAT('910G', tiploc_code) AS from_stop_id,
-        CONCAT('910G', tiploc_code) AS to_stop_id,
-        null as from_trip_id,
-        null as to_trip_id,
-        2 AS transfer_type, 
-        minimum_change_time * 60 AS min_transfer_time
-      FROM physical_station WHERE cate_interchange_status <> 9
-      GROUP BY crs_code
-    `);
-    
-    results.push(...await this.getSuttonLoopTransfers());
-
-    return results;
+  public async getTransfers(disableStationMct = false): Promise<Transfer[]> {
+    const transfers = await this.getSuttonLoopTransfers();
+    if (!disableStationMct) {
+      const [results] = await this.db.query<Transfer>(`
+        SELECT
+          CONCAT('910G', tiploc_code) AS from_stop_id,
+          CONCAT('910G', tiploc_code) AS to_stop_id,
+          null as from_trip_id,
+          null as to_trip_id,
+          2 AS transfer_type, 
+          minimum_change_time * 60 AS min_transfer_time
+        FROM physical_station WHERE cate_interchange_status <> 9
+        GROUP BY crs_code
+      `);
+      transfers.push(...results);
+    }
+    return transfers;
   }
   
   private async getSuttonLoopTransfers(): Promise<Transfer[]> {
