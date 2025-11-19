@@ -8,6 +8,8 @@ import {AtcoCode} from './Stop';
 export interface Transfer {
   from_stop_id: AtcoCode,
   to_stop_id: AtcoCode,
+  from_trip_id?: string,
+  to_trip_id?: string,  
   transfer_type: TransferType,
   min_transfer_time: Duration
 }
@@ -16,6 +18,8 @@ export enum TransferType {
   Recommended = 0,
   Timed = 1,
   MinTime = 2,
-  NotPossible = 3
+  NotPossible = 3,
+  InSeat = 4,
+  AlightAndReboard = 5,  
 }
 

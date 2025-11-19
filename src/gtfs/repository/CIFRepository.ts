@@ -1,17 +1,17 @@
-
 import {Pool} from 'mysql2';
 import * as proj4 from 'proj4';
 import {DatabaseConnection} from "../../database/DatabaseConnection";
 import {RouteType} from '../file/Route';
-import {Transfer} from "../file/Transfer";
+import {Transfer, TransferType} from "../file/Transfer";
 import {AtcoCode, CRS, Stop, TIPLOC} from "../file/Stop";
 import moment = require("moment");
-import {ScheduleCalendar} from "../native/ScheduleCalendar";
+import {OverlapType, ScheduleCalendar} from "../native/ScheduleCalendar";
 import {Association, AssociationType, DateIndicator} from "../native/Association";
 import {RSID, STP, TUID} from "../native/OverlayRecord";
 import {ScheduleBuilder, ScheduleResults} from "./ScheduleBuilder";
 import {Duration} from "../native/Duration";
 import {FixedLink} from "../file/FixedLink";
+import {Schedule} from "../native/Schedule";
 
 /**
  * Provide access to the CIF/TTIS data in a vaguely GTFS-ish shape.
@@ -38,13 +38,95 @@ export class CIFRepository {
       SELECT
         CONCAT('910G', tiploc_code) AS from_stop_id,
         CONCAT('910G', tiploc_code) AS to_stop_id,
+        null as from_trip_id,
+        null as to_trip_id,
         2 AS transfer_type, 
-        minimum_change_time * 60 AS min_transfer_time 
+        minimum_change_time * 60 AS min_transfer_time
       FROM physical_station WHERE cate_interchange_status <> 9
       GROUP BY crs_code
     `);
+    
+    results.push(...await this.getSuttonLoopTransfers());
 
     return results;
+  }
+  
+  private async getSuttonLoopTransfers(): Promise<Transfer[]> {
+      const scheduleResultsPromise = this.getSchedules();
+      const hackbridgeArrivals = <Schedule[]>[];
+      const hackbridgeDepartures = <Schedule[]>[];
+      const wimbledonArrivals = <Schedule[]>[];
+      const wimbledonDepartures = <Schedule[]>[];
+      const results = <Transfer[]>[];
+      for (const schedule of (await scheduleResultsPromise).schedules) {
+          function callingAt(stop_code : CRS) : boolean {
+              const result = schedule.stopTimes.find((stop) => stop.stop_code === stop_code);
+              return result !== undefined;
+          }
+          
+          if (schedule.stopTimes.length === 0) {
+              continue;
+          }
+          
+          if (schedule.stopTimes[0].stop_code === 'SUO') {
+              if (callingAt('WIM')) {
+                  wimbledonDepartures.push(schedule);
+              }
+              if (callingAt('HCB')) {
+                  hackbridgeDepartures.push(schedule);
+              }
+          }
+          
+          if (schedule.stopTimes[schedule.stopTimes.length - 1].stop_code === 'SUO') {
+              if (callingAt('HCB')) {
+                  hackbridgeArrivals.push(schedule);
+              }
+              if (callingAt('WIM')) {
+                  wimbledonArrivals.push(schedule);
+              }
+          }
+      }
+      
+      function processTransfer(arrival : Schedule, departure : Schedule) {
+          // check that they are on the same platform
+          if (departure.stopTimes[0].stop_id !== arrival.stopTimes[arrival.stopTimes.length - 1].stop_id) {
+              return;
+          }
+          
+          // check that the arrival and departure are within 10 minutes
+          const layover = moment.duration(departure.stopTimes[0].departure_time).asMinutes() - moment.duration(arrival.stopTimes[arrival.stopTimes.length - 1].arrival_time).asMinutes();
+          if (layover < 0 || layover > 10) {
+              return;
+          }
+          
+          // check that they both run on some dates
+          if (arrival.calendar.getOverlap(departure.calendar) === OverlapType.None) {
+              return;
+          }
+          
+          results.push({
+              from_stop_id: arrival.stopTimes[arrival.stopTimes.length - 1].stop_id,
+              to_stop_id: departure.stopTimes[0].stop_id,
+              from_trip_id: arrival.tripId,
+              to_trip_id: departure.tripId,
+              transfer_type: TransferType.InSeat,
+              min_transfer_time: 60
+          });
+      }
+      
+      for (const arrival of hackbridgeArrivals) {
+          for (const departure of wimbledonDepartures) {
+              processTransfer(arrival, departure);
+          }
+      }
+      
+      for (const arrival of wimbledonArrivals) {
+          for (const departure of hackbridgeDepartures) {
+              processTransfer(arrival, departure);
+          }
+      }
+      
+      return results;
   }
 
   /**
@@ -226,6 +308,10 @@ export class CIFRepository {
    * codes as the location so avoid the disaster above.
    */
   public async getSchedules(): Promise<ScheduleResults> {
+      return (await this.scheduleBuilder).results;
+  }
+  
+  private scheduleBuilder = (async ()=> {
     const scheduleBuilder = new ScheduleBuilder();
     const [[lastSchedule]] = await this.db.query<{id: number}>("SELECT id FROM schedule ORDER BY id desc LIMIT 1");
 
@@ -250,8 +336,8 @@ export class CIFRepository {
       `)),
     ]);
 
-    return scheduleBuilder.results;
-  }
+    return scheduleBuilder;
+  })();
 
   /**
    * Get associations

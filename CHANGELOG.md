@@ -1,3 +1,7 @@
+## [10.4.0] - 2025-11-19
+* Add in-seat transfers for Sutton loop
+* Fix bikes_allowed edge case when a train departs close to 19:00
+
 ## [10.3.2] - 2025-10-23
 * Fix Overground line detection for Watford Junction - Stratford, which should be Lioness line.
 
