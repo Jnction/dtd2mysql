@@ -136,7 +136,7 @@ export class Schedule implements OverlayRecord {
     }
 
     // apply Stansted Express branding
-    if (prefix === 'LE' && routeLongName.includes('Stansted Airport') && ['London', 'Tottenham Hale', 'Seven Sisters'].some(element => routeLongName.includes(element))) {
+    if (prefix === 'LE' && routeLongName.includes('Stansted Airport') && ['London', 'Tottenham Hale', 'Seven Sisters', 'Stratford'].some(element => routeLongName.includes(element))) {
       return {route_id : 'SX', name : 'Stansted Express', colour : 0x6b717a};
     }
 
