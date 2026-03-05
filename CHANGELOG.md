@@ -1,3 +1,7 @@
+## [10.4.1] - 2026-03-05
+* Recognise Stansted Airport - Stratford services as Stansted Express
+* Add Lumo (West Coast) train company
+
 ## [10.4.0] - 2025-11-19
 * Add in-seat transfers for Sutton loop
 * Add option to disable MCT transfers

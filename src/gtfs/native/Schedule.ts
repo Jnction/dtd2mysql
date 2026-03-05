@@ -198,7 +198,7 @@ export class Schedule implements OverlayRecord {
       "HX": {name: "Heathrow Express", colour: 0x532e63},
       "IL": {name: "Island Line", colour: 0x1e90ff},
       "LD": {name: "Lumo", colour: 0x2b6ef5},
-      "LF": {name: "Lumo", colour: 0x2b6ef5},
+      "LF": {name: "Lumo Stirling", colour: 0x2b6ef5},
       "LM": {name: 'WMT', long_name: "West Midlands Trains", colour: null},
       "LO": {name: "Overground", long_name: "London Overground", colour: 0xff7518},
       "LT": {name: "Underground", long_name: "London Underground", colour: 0x000f9f},
