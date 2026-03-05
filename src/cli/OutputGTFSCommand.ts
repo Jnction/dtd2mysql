@@ -151,7 +151,7 @@ export class OutputGTFSCommand implements CLICommand {
 
         const operator = schedule.operator;
         // Lumo trains don't allow bikes at all
-        if (operator === 'LD') {
+        if (operator === 'LD' || operator === 'LF') {
           return Accessibility.NO;
         }
 
