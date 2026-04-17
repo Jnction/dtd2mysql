@@ -237,7 +237,10 @@ export class CIFRepository {
         const platform_code = stop.platform_code;
         stop.vehicle_type = platform_code === 'BUS' ? RouteType.ReplacementBus : RouteType.Rail;
         if (platform_code) {
-          const platform_data = (station_data?.platforms ?? [])[platform_code];
+          const platforms = station_data?.platforms ?? [];
+          const platform_data = platforms[platform_code] 
+              ?? platforms[platform_code.toUpperCase()] 
+              ?? platforms[platform_code.toLowerCase()];
           if (platform_data !== undefined) {
             // use platform data if available
             return Object.assign(stop, platform_data);
